@@ -26,7 +26,7 @@ export const App = () => {
   const isSupported = useFeatureSupport();
   const { favorites, toggle: toggleFavorite, isFavorite } = useFavorites();
 
-  const ITEMS_PER_PAGE = 16;
+  const ITEMS_PER_PAGE = 20;
   const FAVORITES_PER_PAGE = 8;
   const totalPages = Math.ceil(icons.length / ITEMS_PER_PAGE);
   const totalFavoritesPages = Math.ceil(favorites.length / FAVORITES_PER_PAGE);
@@ -40,7 +40,7 @@ export const App = () => {
     (favoritesPage - 1) * FAVORITES_PER_PAGE,
     favoritesPage * FAVORITES_PER_PAGE
   );
-  
+
   // Fetch icons when query changes
   useEffect(() => {
     if (query.length < 2) {
@@ -170,252 +170,262 @@ export const App = () => {
   //const favoriteIcons = icons.filter(icon => isFavorite(icon.id));
 
   return (
-    <Rows spacing="1u">
-      <Title size="medium">IconVault – 200k+ Icons</Title>
-      <Box paddingEnd="1u">
-        <Box padding="2u" border="low" borderRadius="standard">
-        {favorites.length > 0 ? (
-          <>
-            <Text size="small" tone="secondary">
-              Favorites ({favorites.length})
-            </Text>
-            <div style={{ marginTop: '8px' }}>
-              <IconGrid
-                icons={paginatedFavorites}
-                onInsert={insertIcon}
-                onToggleFavorite={toggleFavorite}
-                isFavorite={isFavorite}
-                createDragHandler={createDragHandler}
-              />
-            </div>
+    <>
+      <Rows spacing="1u">
+        <Title size="medium">IconVault – 200k+ Icons</Title>
 
-            {/* Favorites Pagination */}
-            {totalFavoritesPages > 1 && (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: '12px',
-                }}
-              >
-                <Button
-                  variant="secondary"
-                  onClick={() => setFavoritesPage((prev) => Math.max(1, prev - 1))}
-                  disabled={favoritesPage === 1}
-                >
-                  Prev
-                </Button>
-                <Text size="small" tone="secondary">
-                  {favoritesPage} / {totalFavoritesPages}
-                </Text>
-                <Button
-                  variant="secondary"
-                  onClick={() => setFavoritesPage((prev) => Math.min(totalFavoritesPages, prev + 1))}
-                  disabled={favoritesPage === totalFavoritesPages}
-                >
-                  Next
-                </Button>
-              </div>
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          onClear={handleClearSearch}
+          inputRef={searchInputRef}
+        />
+
+        <Flyout
+          open={isOpen}
+          onRequestClose={handleCloseFlyout}
+          trigger={<div style={{ height: '0' }} />}
+          placement="bottom-start"
+        >
+          <div
+            style={{
+              padding: '2px',
+              minWidth: '240px',
+              maxWidth: '245px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center', // This perfectly centers everything
+              gap: '12px',
+            }}
+            onMouseEnter={() => searchInputRef.current?.focus()}
+            onMouseMove={() => {
+              if (document.activeElement !== searchInputRef.current) {
+                searchInputRef.current?.focus();
+              }
+            }}
+          >
+            {loading && <LoadingIndicator size="medium" />}
+
+            {icons.length === 0 && !loading && query.length >= 2 && (
+              <Text tone="secondary" >
+                No results – try "home" or "user"
+              </Text>
             )}
-          </>
-        ) : (
-          <Box padding="1u" display="flex" alignItems="center" justifyContent="center">
-            <Text tone="secondary" alignment="center">
-              Click the heart icon on any icon to add it to favorites
-            </Text>
 
-          </Box>
-        )}
-      </Box>
-      </Box>
+            {paginatedIcons.length > 0 && (
+              <>
+                {/* Icon Grid – full width, centered items */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '4px',
+                    width: '100%',
+                    padding: '0 4px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {paginatedIcons.map((icon) => {
+                    const handleDragStart = createDragHandler(icon);
 
-      <SearchBar
-        value={query}
-        onChange={setQuery}
-        onClear={handleClearSearch}
-        inputRef={searchInputRef}
-      />
-
-      <Flyout
-        open={isOpen}
-        onRequestClose={handleCloseFlyout}
-        trigger={<div style={{ height: '0' }} />}
-        placement="bottom-start"
-      >
-        <div
-          style={{
-            padding: '2px',
-            minWidth: '240px',
-            maxWidth: '245px',
-            display: 'flex',
-            flexDirection: 'column', 
-            alignItems: 'center', // This perfectly centers everything
-            gap: '12px',
-          }}
-          onMouseEnter={() => searchInputRef.current?.focus()}
-          onMouseMove={() => {
-            if (document.activeElement !== searchInputRef.current) {
-              searchInputRef.current?.focus();
-            }
-          }}
->       
-          {loading && <LoadingIndicator size="medium" />}
-        
-          {icons.length === 0 && !loading && query.length >= 2 && (
-            <Text tone="secondary" >
-              No results – try "home" or "user"
-            </Text>
-          )}
-
-          {paginatedIcons.length > 0 && (
-            <>
-              {/* Icon Grid – full width, centered items */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '4px',
-                  width: '100%',
-                  padding: '0 4px',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {paginatedIcons.map((icon) => {
-                  const handleDragStart = createDragHandler(icon);
-
-                  return (
-                    <div key={icon.id} style={{ position: 'relative' }}>
-                      <div
-                        draggable={true}
-                        onDragStart={handleDragStart}
-                        onClick={() => {
-                          insertIcon(icon.svgUrl);
-                          searchInputRef.current?.focus();
-                        }}
-                        style={{
-                          cursor: 'grab',
-                          width: '100%',
-                          padding: 0,
-                          background: 'transparent',
-                          border: 'none',
-                          boxSizing: 'border-box',
-                        }}
-                      >
-                        <Box
-                          padding="0.5u"
-                          border='low'
-                          borderRadius="standard"
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="center"
+                    return (
+                      <div key={icon.id} style={{ position: 'relative' }}>
+                        <div
+                          draggable={true}
+                          onDragStart={handleDragStart}
+                          onClick={() => {
+                            insertIcon(icon.svgUrl);
+                            searchInputRef.current?.focus();
+                          }}
+                          style={{
+                            cursor: 'grab',
+                            width: '100%',
+                            padding: 0,
+                            background: 'transparent',
+                            border: 'none',
+                            boxSizing: 'border-box',
+                          }}
                         >
-                          <img
-                            src={icon.thumbnailUrl}
-                            alt={icon.title}
-                            width={48}
-                            height={48}
-                          />
-                        </Box>
-                      </div>
+                          <Box
+                            padding="0.5u"
+                            border='low'
+                            borderRadius="standard"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                          >
+                            <img
+                              src={icon.thumbnailUrl}
+                              alt={icon.title}
+                              width={48}
+                              height={48}
+                            />
+                          </Box>
+                        </div>
 
-                      {/* Favorite toggle button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(icon);
+                        {/* Favorite toggle button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(icon);
+                            searchInputRef.current?.focus();
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '0px',
+                            right: '0px',
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            border: 'none',
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            padding: '0',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                            transition: 'transform 0.1s ease',
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                          title={isFavorite(icon.id) ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          {isFavorite(icon.id) ? '❤️' : '🤍'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Pagination – edges aligned with icons */}
+                {totalPages > 1 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      padding: '8px 1px 4px 7px',
+                    }}
+                  >
+                    <div
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        searchInputRef.current?.focus();
+                      }}
+                      tabIndex={-1}
+                      style={{ outline: 'none' }}
+                    >
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setCurrentPage((prev) => Math.max(1, prev - 1));
                           searchInputRef.current?.focus();
                         }}
-                        style={{
-                          position: 'absolute',
-                          top: '2px',
-                          right: '2px',
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '50%',
-                          border: 'none',
-                          background: 'rgba(255, 255, 255, 0.9)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          padding: '0',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                          transition: 'transform 0.1s ease',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        title={isFavorite(icon.id) ? 'Remove from favorites' : 'Add to favorites'}
+                        disabled={currentPage === 1}
                       >
-                        {isFavorite(icon.id) ? '❤️' : '🤍'}
-                      </button>
+                        Prev
+                      </Button>
                     </div>
-                  );
-                })}
+                    <Text size="small" tone="secondary">
+                      {currentPage} / {totalPages}
+                    </Text>
+                    <div
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        searchInputRef.current?.focus();
+                      }}
+                      tabIndex={-1}
+                      style={{ outline: 'none' }}
+                    >
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+                          searchInputRef.current?.focus();
+                        }}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </Flyout>
+      </Rows>
+
+      {/* Fixed Favorites Section */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '17px',
+          right: '11px',
+          zIndex: 100,
+        }}
+      >
+        <Box padding="2u" border="low" borderRadius="standard">
+          {favorites.length > 0 ? (
+            <>
+              <Text size="small" tone="secondary">
+                Favorites ({favorites.length})
+              </Text>
+              <div style={{ marginTop: '8px' }}>
+                <IconGrid
+                  icons={paginatedFavorites}
+                  onInsert={insertIcon}
+                  onToggleFavorite={toggleFavorite}
+                  isFavorite={isFavorite}
+                  createDragHandler={createDragHandler}
+                />
               </div>
-              
-              {/* Pagination – edges aligned with icons */}
-              {totalPages > 1 && (
+
+              {/* Favorites Pagination */}
+              {totalFavoritesPages > 1 && (
                 <div
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     width: '100%',
-                    padding: '8px 1px 4px 7px',
+                    padding: '12px 0px 4px 4px',
                   }}
                 >
-                  <div
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      searchInputRef.current?.focus();
-                    }}
-                    tabIndex={-1}
-                    style={{ outline: 'none' }}
+                  <Button
+                    variant="secondary"
+                    onClick={() => setFavoritesPage((prev) => Math.max(1, prev - 1))}
+                    disabled={favoritesPage === 1}
                   >
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setCurrentPage((prev) => Math.max(1, prev - 1));
-                        searchInputRef.current?.focus();
-                      }}
-                      disabled={currentPage === 1}
-                    >
-                      Prev
-                    </Button>
-                  </div>
+                    Prev
+                  </Button>
                   <Text size="small" tone="secondary">
-                    {currentPage} / {totalPages}
+                    {favoritesPage} / {totalFavoritesPages}
                   </Text>
-                  <div
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      searchInputRef.current?.focus();
-                    }}
-                    tabIndex={-1}
-                    style={{ outline: 'none' }}
+                  <Button
+                    variant="secondary"
+                    onClick={() => setFavoritesPage((prev) => Math.min(totalFavoritesPages, prev + 1))}
+                    disabled={favoritesPage === totalFavoritesPages}
                   >
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-                        searchInputRef.current?.focus();
-                      }}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
+                    Next
+                  </Button>
                 </div>
               )}
             </>
+          ) : (
+            <Box padding="1u" display="flex" alignItems="center" justifyContent="center">
+              <Text tone="secondary" alignment="center">
+                Click the heart icon on any icon to add it to favorites
+              </Text>
+            </Box>
           )}
-        </div>
-      </Flyout>
-      
-    </Rows>
-    
+        </Box>
+      </div>
+    </>
   );
 };
 
