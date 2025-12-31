@@ -2,6 +2,7 @@
 import React from 'react';
 import { Box } from '@canva/app-ui-kit';
 import { Icon } from '../types';
+import { useDarkMode } from '../hooks/useDarkMode';
 
 type Props = {
   icon: Icon;
@@ -20,12 +21,23 @@ export const IconItem: React.FC<Props> = ({
 }) => {
   const isIconFavorite = isFavorite?.(icon.id) ?? false;
   const isDraggable = !!onDragStart;
+  const isDarkMode = useDarkMode();
 
   return (
     <div style={{ position: 'relative' }}>
       <div
         draggable={isDraggable}
-        onDragStart={onDragStart}
+        onDragStart={(e) => {
+          if (onDragStart) {
+            onDragStart(e);
+            // Hide thumbnail during drag
+            e.currentTarget.style.opacity = '0';
+          }
+        }}
+        onDragEnd={(e) => {
+          // Restore visibility after drag
+          e.currentTarget.style.opacity = '1';
+        }}
         onClick={() => onInsert(icon.svgUrl)}
         style={{
           border: 'none',
@@ -33,18 +45,26 @@ export const IconItem: React.FC<Props> = ({
           cursor: isDraggable ? 'grab' : 'pointer',
           width: '100%',
           padding: '4px',
+          transition: 'opacity 0.15s ease',
         }}
       >
-        <Box
-          padding="0.5u"
-          border='low'
-          borderRadius="large"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+        <div
+          style={{
+            backgroundColor: isDarkMode ? '#E8E8E8' : undefined,
+            borderRadius: '8px',
+          }}
         >
-          <img src={icon.thumbnailUrl} alt={icon.title} width={48} height={48} />
-        </Box>
+          <Box
+            padding="0.5u"
+            border='low'
+            borderRadius="large"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <img src={icon.thumbnailUrl} alt={icon.title} width={48} height={48} />
+          </Box>
+        </div>
       </div>
 
       {onToggleFavorite && (

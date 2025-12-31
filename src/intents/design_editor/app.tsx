@@ -10,6 +10,7 @@ import { SearchBar } from '../../components/SearchBar';
 import { IconGrid } from '../../components/IconGrid';
 import { FavoritesSection } from '../../components/FavoritesSection';
 import { useFavorites } from '../../hooks/useFavorites';
+import { useDarkMode } from '../../hooks/useDarkMode';
 import { Icon } from '../../types';
 
 
@@ -25,6 +26,7 @@ export const App = () => {
 
   const isSupported = useFeatureSupport();
   const { favorites, toggle: toggleFavorite, isFavorite } = useFavorites();
+  const isDarkMode = useDarkMode();
 
   const ITEMS_PER_PAGE = 20;
   const FAVORITES_PER_PAGE = 8;
@@ -172,7 +174,7 @@ export const App = () => {
   return (
     <>
       <Rows spacing="1u">
-        <Title size="medium">IconVault – 200k+ Icons</Title>
+        <Title size="medium">IconFlow – 200k+ Icons</Title>
 
         <SearchBar
           value={query}
@@ -232,7 +234,15 @@ export const App = () => {
                       <div key={icon.id} style={{ position: 'relative' }}>
                         <div
                           draggable={true}
-                          onDragStart={handleDragStart}
+                          onDragStart={(e) => {
+                            handleDragStart(e);
+                            // Hide the thumbnail during drag
+                            e.currentTarget.style.opacity = '0';
+                          }}
+                          onDragEnd={(e) => {
+                            // Restore visibility after drag
+                            e.currentTarget.style.opacity = '1';
+                          }}
                           onClick={() => {
                             insertIcon(icon.svgUrl);
                             searchInputRef.current?.focus();
@@ -244,23 +254,31 @@ export const App = () => {
                             background: 'transparent',
                             border: 'none',
                             boxSizing: 'border-box',
+                            transition: 'opacity 0.15s ease',
                           }}
                         >
-                          <Box
-                            padding="0.5u"
-                            border='low'
-                            borderRadius="standard"
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
+                          <div
+                            style={{
+                              backgroundColor: isDarkMode ? '#E8E8E8' : undefined,
+                              borderRadius: '4px',
+                            }}
                           >
-                            <img
-                              src={icon.thumbnailUrl}
-                              alt={icon.title}
-                              width={48}
-                              height={48}
-                            />
-                          </Box>
+                            <Box
+                              padding="0.5u"
+                              border='low'
+                              borderRadius="standard"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                            >
+                              <img
+                                src={icon.thumbnailUrl}
+                                alt={icon.title}
+                                width={48}
+                                height={48}
+                              />
+                            </Box>
+                          </div>
                         </div>
 
                         {/* Favorite toggle button */}
