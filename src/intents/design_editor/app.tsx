@@ -55,14 +55,14 @@ export const App = () => {
       setLoading(true);
       try {
         const res = await fetch(
-          `https://api.iconify.design/search?query=${encodeURIComponent(query)}&limit=50`
+          `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(query)}&limit=50`
         );
         const data = await res.json();
         const results = data.icons.map((icon: string) => ({
           id: icon,
           title: icon,
-          thumbnailUrl: `https://api.iconify.design/${icon}.svg?height=48&width=48`,
-          svgUrl: `https://api.iconify.design/${icon}.svg?height=80&width=80`,
+          thumbnailUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=48&width=48`,
+          svgUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=80&width=80`,
         }));
         setIcons(results);
         setIsOpen(true);
