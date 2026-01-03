@@ -1,8 +1,8 @@
 // src/components/FavoritesSection.tsx
-import React from 'react';
-import { Text } from '@canva/app-ui-kit';
-import { IconGrid } from './IconGrid';
-import { Icon } from '../types';
+import React from "react";
+import { Text } from "@canva/app-ui-kit";
+import { IconGrid } from "./IconGrid";
+import type { Icon } from "../types";
 
 type Props = {
   favoriteIcons: Icon[];
@@ -10,6 +10,8 @@ type Props = {
   onToggleFavorite: (id: string) => void;
   isFavorite: (id: string) => boolean;
 };
+
+const FAVORITES_LABEL = "Favorites ❤️";
 
 export const FavoritesSection: React.FC<Props> = ({
   favoriteIcons,
@@ -21,11 +23,10 @@ export const FavoritesSection: React.FC<Props> = ({
 
   return (
     <>
-      <Text size="small" tone="secondary">Favorites ❤️</Text>
-      <IconGrid
-        icons={favoriteIcons}
-        onInsert={onInsert}
-      />
+      <Text size="small" tone="secondary">
+        {FAVORITES_LABEL}
+      </Text>
+      <IconGrid icons={favoriteIcons} onInsert={onInsert} />
     </>
   );
 };

@@ -1,7 +1,7 @@
 // src/components/IconGrid.tsx
-import React from 'react';
-import { Icon } from '../types';
-import { IconItem } from './IconItem';
+import React from "react";
+import type { Icon } from "../types";
+import { IconItem } from "./IconItem";
 
 type Props = {
   icons: Icon[];
@@ -21,9 +21,9 @@ export const IconGrid: React.FC<Props> = ({
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '8px',
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: "8px",
       }}
     >
       {icons.map((icon) => (

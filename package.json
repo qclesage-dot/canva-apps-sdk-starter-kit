@@ -19,7 +19,8 @@
     "format:file": "prettier $1 --no-config --write",
     "test": "jest --no-cache --detectOpenHandles",
     "test:watch": "jest --no-cache --watch",
-    "postinstall": "ts-node ./scripts/copy_env.ts"
+    "postinstall": "ts-node ./scripts/copy_env.ts",
+    "compile": "formatjs compile"
   },
   "keywords": [],
   "author": "Canva Pty Ltd.",
@@ -37,7 +38,7 @@
     "@canva/error": "^2.1.0",
     "@canva/intents": "^2.0.0",
     "@canva/platform": "^2.2.0",
-    "@canva/user": "^2.1.1",
+    "@canva/user": "^2.1.2",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-intl": "^7.1.11"
@@ -45,7 +46,7 @@
   "devDependencies": {
     "@canva/app-eslint-plugin": "^1.0.0-beta.7",
     "@canva/cli": ">= 0.0.1-beta.13",
-    "@formatjs/cli": "6.7.2",
+    "@formatjs/cli": "^6.9.0",
     "@formatjs/ts-transformer": "3.14.0",
     "@ngrok/ngrok": "^1.7.0",
     "@svgr/webpack": "8.1.0",

@@ -1,8 +1,12 @@
 // src/components/IconItem.tsx
-import React from 'react';
-import { Box } from '@canva/app-ui-kit';
-import { Icon } from '../types';
-import { useDarkMode } from '../hooks/useDarkMode';
+import React from "react";
+import { Box } from "@canva/app-ui-kit";
+import type { Icon } from "../types";
+import { useDarkMode } from "../hooks/useDarkMode";
+import { useIntl } from "react-intl";
+
+const FAVORITE_ICON = "❤️";
+const UNFAVORITE_ICON = "🤍";
 
 type Props = {
   icon: Icon;
@@ -22,47 +26,53 @@ export const IconItem: React.FC<Props> = ({
   const isIconFavorite = isFavorite?.(icon.id) ?? false;
   const isDraggable = !!onDragStart;
   const isDarkMode = useDarkMode();
+  const intl = useIntl();
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: "relative" }}>
       <div
         draggable={isDraggable}
         onDragStart={(e) => {
           if (onDragStart) {
             onDragStart(e);
             // Hide thumbnail during drag
-            e.currentTarget.style.opacity = '0';
+            e.currentTarget.style.opacity = "0";
           }
         }}
         onDragEnd={(e) => {
           // Restore visibility after drag
-          e.currentTarget.style.opacity = '1';
+          e.currentTarget.style.opacity = "1";
         }}
         onClick={() => onInsert(icon.svgUrl)}
         style={{
-          border: 'none',
-          background: 'transparent',
-          cursor: isDraggable ? 'grab' : 'pointer',
-          width: '100%',
-          padding: '4px',
-          transition: 'opacity 0.15s ease',
+          border: "none",
+          background: "transparent",
+          cursor: isDraggable ? "grab" : "pointer",
+          width: "100%",
+          padding: "4px",
+          transition: "opacity 0.15s ease",
         }}
       >
         <div
           style={{
-            backgroundColor: isDarkMode ? '#E8E8E8' : undefined,
-            borderRadius: '8px',
+            backgroundColor: isDarkMode ? "#E8E8E8" : undefined,
+            borderRadius: "8px",
           }}
         >
           <Box
             padding="0.5u"
-            border='low'
+            border="low"
             borderRadius="large"
             display="flex"
             alignItems="center"
             justifyContent="center"
           >
-            <img src={icon.thumbnailUrl} alt={icon.title} width={48} height={48} />
+            <img
+              src={icon.thumbnailUrl}
+              alt={icon.title}
+              width={48}
+              height={48}
+            />
           </Box>
         </div>
       </div>
@@ -74,28 +84,51 @@ export const IconItem: React.FC<Props> = ({
             onToggleFavorite(icon);
           }}
           style={{
-            position: 'absolute',
-            top: '2px',
-            right: '2px',
-            width: '12px',
-            height: '12px',
-            borderRadius: '50%',
-            border: 'none',
-            background: 'rgba(255, 255, 255, 0.9)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px',
-            padding: '0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-            transition: 'transform 0.1s ease',
+            position: "absolute",
+            top: "2px",
+            right: "2px",
+            width: "12px",
+            height: "12px",
+            borderRadius: "50%",
+            border: "none",
+            background: "rgba(255, 255, 255, 0.9)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "14px",
+            padding: "0",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+            transition: "transform 0.1s ease",
           }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          title={isIconFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          title={
+            isIconFavorite
+              ? intl.formatMessage({
+                  defaultMessage: "Remove from favorites",
+                  description:
+                    "Tooltip for button to remove an icon from favorites",
+                })
+              : intl.formatMessage({
+                  defaultMessage: "Add to favorites",
+                  description: "Tooltip for button to add an icon to favorites",
+                })
+          }
+          aria-label={
+            isIconFavorite
+              ? intl.formatMessage({
+                  defaultMessage: "Remove from favorites",
+                  description:
+                    "Tooltip for button to remove an icon from favorites",
+                })
+              : intl.formatMessage({
+                  defaultMessage: "Add to favorites",
+                  description: "Tooltip for button to add an icon to favorites",
+                })
+          }
         >
-          {isIconFavorite ? '❤️' : '🤍'}
+          {isIconFavorite ? FAVORITE_ICON : UNFAVORITE_ICON}
         </button>
       )}
     </div>

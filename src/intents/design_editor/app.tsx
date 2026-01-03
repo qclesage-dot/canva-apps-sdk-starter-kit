@@ -1,29 +1,38 @@
 // src/app.tsx
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Rows, Title, LoadingIndicator, Box, Button, Text } from '@canva/app-ui-kit';
-import { addElementAtPoint, ui, addNativeElement } from '@canva/design';
-import { Flyout } from '@canva/app-ui-kit';
-import { upload } from '@canva/asset';
-import { useFeatureSupport } from '@canva/app-hooks';
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  Rows,
+  Title,
+  LoadingIndicator,
+  Box,
+  Button,
+  Text,
+} from "@canva/app-ui-kit";
+import { ui, addNativeElement } from "@canva/design";
+import { Flyout } from "@canva/app-ui-kit";
+import { upload } from "@canva/asset";
+import { useFeatureSupport } from "@canva/app-hooks";
 
-import { SearchBar } from '../../components/SearchBar';
-import { IconGrid } from '../../components/IconGrid';
-import { FavoritesSection } from '../../components/FavoritesSection';
-import { useFavorites } from '../../hooks/useFavorites';
-import { useDarkMode } from '../../hooks/useDarkMode';
-import { Icon } from '../../types';
+import { SearchBar } from "../../components/SearchBar";
+import { IconGrid } from "../../components/IconGrid";
+import { useFavorites } from "../../hooks/useFavorites";
+import { useDarkMode } from "../../hooks/useDarkMode";
+import type { Icon } from "../../types";
+import { useIntl, FormattedMessage } from "react-intl";
 
-
+// UI Text Constants
+const FAVORITE_ICON = "❤️";
+const UNFAVORITE_ICON = "🤍";
 
 export const App = () => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [icons, setIcons] = useState<Icon[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [favoritesPage, setFavoritesPage] = useState(1);
+  const [favoritesPage] = useState(1);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-
+  const intl = useIntl();
   const isSupported = useFeatureSupport();
   const { favorites, toggle: toggleFavorite, isFavorite } = useFavorites();
   const isDarkMode = useDarkMode();
@@ -35,12 +44,12 @@ export const App = () => {
 
   const paginatedIcons = icons.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   const paginatedFavorites = favorites.slice(
     (favoritesPage - 1) * FAVORITES_PER_PAGE,
-    favoritesPage * FAVORITES_PER_PAGE
+    favoritesPage * FAVORITES_PER_PAGE,
   );
 
   // Fetch icons when query changes
@@ -55,7 +64,7 @@ export const App = () => {
       setLoading(true);
       try {
         const res = await fetch(
-          `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(query)}&limit=50`
+          `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(query)}&limit=50`,
         );
         const data = await res.json();
         const results = data.icons.map((icon: string) => ({
@@ -95,10 +104,10 @@ export const App = () => {
     };
 
     // Use capture phase (true) to intercept focus before it reaches target
-    document.addEventListener('focus', preventFocusTheft, true);
+    document.addEventListener("focus", preventFocusTheft, true);
 
     return () => {
-      document.removeEventListener('focus', preventFocusTheft, true);
+      document.removeEventListener("focus", preventFocusTheft, true);
     };
   }, [isOpen]);
 
@@ -106,60 +115,63 @@ export const App = () => {
     const res = await fetch(svgUrl);
     const svg = await res.text();
     const bytes = new TextEncoder().encode(svg);
-    const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join('');
+    const binString = Array.from(bytes, (byte) =>
+      String.fromCodePoint(byte),
+    ).join("");
     const base64 = btoa(binString);
     const dataUrl = `data:image/svg+xml;base64,${base64}`;
 
     return upload({
-      type: 'image',
-      mimeType: 'image/svg+xml',
+      type: "image",
+      mimeType: "image/svg+xml",
       url: dataUrl,
       thumbnailUrl: dataUrl,
       width: 80,
       height: 80,
-      aiDisclosure: 'none',
+      aiDisclosure: "none",
     });
   };
 
-  const createDragHandler = (icon: Icon) => async (e: React.DragEvent<HTMLElement>) => {
-    try {
-      const dragData = {
-        type: 'image' as const,
-        resolveImageRef: () => uploadIconSvg(icon.svgUrl),
-        previewUrl: icon.thumbnailUrl,
-        previewSize: { width: 48, height: 48 },
-        fullSize: { width: 80, height: 80 },
-      };
+  const createDragHandler =
+    (icon: Icon) => async (e: React.DragEvent<HTMLElement>) => {
+      try {
+        const dragData = {
+          type: "image" as const,
+          resolveImageRef: () => uploadIconSvg(icon.svgUrl),
+          previewUrl: icon.thumbnailUrl,
+          previewSize: { width: 48, height: 48 },
+          fullSize: { width: 80, height: 80 },
+        };
 
-      if (isSupported(ui.startDragToPoint)) {
-        ui.startDragToPoint(e, dragData);
-      } else if (isSupported(ui.startDragToCursor)) {
-        ui.startDragToCursor(e, dragData);
+        if (isSupported(ui.startDragToPoint)) {
+          ui.startDragToPoint(e, dragData);
+        } else if (isSupported(ui.startDragToCursor)) {
+          ui.startDragToCursor(e, dragData);
+        }
+      } catch (err) {
+        console.error("Drag failed:", err);
       }
-    } catch (err) {
-      console.error('Drag failed:', err);
-    }
-  };
+    };
 
   const insertIcon = async (svgUrl: string) => {
     try {
       const uploadResult = await uploadIconSvg(svgUrl);
 
       await addNativeElement({
-        type: 'image',
+        type: "image",
         ref: uploadResult.ref,
         altText: undefined,
       });
 
       setIsOpen(false);
     } catch (err) {
-      console.error('Failed to insert icon:', err);
-      alert('Failed to insert icon. Please try again.');
+      console.error("Failed to insert icon:", err);
+      alert("Failed to insert icon. Please try again.");
     }
   };
 
   const handleClearSearch = () => {
-    setQuery('');
+    setQuery("");
     setIcons([]);
     setIsOpen(false);
   };
@@ -169,12 +181,15 @@ export const App = () => {
     setCurrentPage(1);
   };
 
-  //const favoriteIcons = icons.filter(icon => isFavorite(icon.id));
-
   return (
     <>
       <Rows spacing="1u">
-        <Title size="medium">IconFlow – 200k+ Icons</Title>
+        <Title size="medium">
+          <FormattedMessage
+            defaultMessage="IconFlow – 200k+ Icons"
+            description="Main app title shown at the top"
+          />
+        </Title>
 
         <SearchBar
           value={query}
@@ -186,18 +201,18 @@ export const App = () => {
         <Flyout
           open={isOpen}
           onRequestClose={handleCloseFlyout}
-          trigger={<div style={{ height: '0' }} />}
+          trigger={<div style={{ height: "0" }} />}
           placement="bottom-start"
         >
           <div
             style={{
-              padding: '2px',
-              minWidth: '240px',
-              maxWidth: '245px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center', // This perfectly centers everything
-              gap: '12px',
+              padding: "2px",
+              minWidth: "240px",
+              maxWidth: "245px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "12px",
             }}
             onMouseEnter={() => searchInputRef.current?.focus()}
             onMouseMove={() => {
@@ -209,8 +224,11 @@ export const App = () => {
             {loading && <LoadingIndicator size="medium" />}
 
             {icons.length === 0 && !loading && query.length >= 2 && (
-              <Text tone="secondary" >
-                No results – try "home" or "user"
+              <Text tone="secondary">
+                {intl.formatMessage({
+                  defaultMessage: 'No results – try "home" or "user"',
+                  description: "Message shown when a search returns no icons",
+                })}
               </Text>
             )}
 
@@ -219,53 +237,55 @@ export const App = () => {
                 {/* Icon Grid – full width, centered items */}
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
-                    gap: '4px',
-                    width: '100%',
-                    padding: '0 4px',
-                    boxSizing: 'border-box',
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "4px",
+                    width: "100%",
+                    padding: "0 4px",
+                    boxSizing: "border-box",
                   }}
                 >
                   {paginatedIcons.map((icon) => {
                     const handleDragStart = createDragHandler(icon);
 
                     return (
-                      <div key={icon.id} style={{ position: 'relative' }}>
+                      <div key={icon.id} style={{ position: "relative" }}>
                         <div
                           draggable={true}
                           onDragStart={(e) => {
                             handleDragStart(e);
                             // Hide the thumbnail during drag
-                            e.currentTarget.style.opacity = '0';
+                            e.currentTarget.style.opacity = "0";
                           }}
                           onDragEnd={(e) => {
                             // Restore visibility after drag
-                            e.currentTarget.style.opacity = '1';
+                            e.currentTarget.style.opacity = "1";
                           }}
                           onClick={() => {
                             insertIcon(icon.svgUrl);
                             searchInputRef.current?.focus();
                           }}
                           style={{
-                            cursor: 'grab',
-                            width: '100%',
+                            cursor: "grab",
+                            width: "100%",
                             padding: 0,
-                            background: 'transparent',
-                            border: 'none',
-                            boxSizing: 'border-box',
-                            transition: 'opacity 0.15s ease',
+                            background: "transparent",
+                            border: "none",
+                            boxSizing: "border-box",
+                            transition: "opacity 0.15s ease",
                           }}
                         >
                           <div
                             style={{
-                              backgroundColor: isDarkMode ? '#E8E8E8' : undefined,
-                              borderRadius: '4px',
+                              backgroundColor: isDarkMode
+                                ? "#E8E8E8"
+                                : undefined,
+                              borderRadius: "4px",
                             }}
                           >
                             <Box
                               padding="0.5u"
-                              border='low'
+                              border="low"
                               borderRadius="standard"
                               display="flex"
                               alignItems="center"
@@ -289,28 +309,46 @@ export const App = () => {
                             searchInputRef.current?.focus();
                           }}
                           style={{
-                            position: 'absolute',
-                            top: '0px',
-                            right: '0px',
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '50%',
-                            border: 'none',
-                            background: 'rgba(255, 255, 255, 0.9)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '14px',
-                            padding: '0',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                            transition: 'transform 0.1s ease',
+                            position: "absolute",
+                            top: "0px",
+                            right: "0px",
+                            width: "12px",
+                            height: "12px",
+                            borderRadius: "50%",
+                            border: "none",
+                            background: "rgba(255, 255, 255, 0.9)",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "14px",
+                            padding: "0",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                            transition: "transform 0.1s ease",
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                          title={isFavorite(icon.id) ? 'Remove from favorites' : 'Add to favorites'}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.transform = "scale(1.1)")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.transform = "scale(1)")
+                          }
+                          title={
+                            isFavorite(icon.id)
+                              ? intl.formatMessage({
+                                  defaultMessage: "Remove from favorites",
+                                  description:
+                                    "Tooltip for button to remove an icon from favorites",
+                                })
+                              : intl.formatMessage({
+                                  defaultMessage: "Add to favorites",
+                                  description:
+                                    "Tooltip for button to add an icon to favorites",
+                                })
+                          }
                         >
-                          {isFavorite(icon.id) ? '❤️' : '🤍'}
+                          {isFavorite(icon.id)
+                            ? FAVORITE_ICON
+                            : UNFAVORITE_ICON}
                         </button>
                       </div>
                     );
@@ -321,11 +359,11 @@ export const App = () => {
                 {totalPages > 1 && (
                   <div
                     style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      width: '100%',
-                      padding: '8px 1px 4px 7px',
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      width: "100%",
+                      padding: "8px 1px 4px 7px",
                     }}
                   >
                     <div
@@ -334,7 +372,7 @@ export const App = () => {
                         searchInputRef.current?.focus();
                       }}
                       tabIndex={-1}
-                      style={{ outline: 'none' }}
+                      style={{ outline: "none" }}
                     >
                       <Button
                         variant="secondary"
@@ -344,11 +382,19 @@ export const App = () => {
                         }}
                         disabled={currentPage === 1}
                       >
-                        Prev
+                        {intl.formatMessage({
+                          defaultMessage: "Prev",
+                          description:
+                            "Label for the previous page button in icon search results",
+                        })}
                       </Button>
                     </div>
                     <Text size="small" tone="secondary">
-                      {currentPage} / {totalPages}
+                      <FormattedMessage
+                        defaultMessage="{current} / {total}"
+                        description="Shows current page and total pages, e.g., 2 / 5"
+                        values={{ current: currentPage, total: totalPages }}
+                      />
                     </Text>
                     <div
                       onMouseDown={(e) => {
@@ -356,17 +402,23 @@ export const App = () => {
                         searchInputRef.current?.focus();
                       }}
                       tabIndex={-1}
-                      style={{ outline: 'none' }}
+                      style={{ outline: "none" }}
                     >
                       <Button
                         variant="secondary"
                         onClick={() => {
-                          setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+                          setCurrentPage((prev) =>
+                            Math.min(totalPages, prev + 1),
+                          );
                           searchInputRef.current?.focus();
                         }}
                         disabled={currentPage === totalPages}
                       >
-                        Next
+                        {intl.formatMessage({
+                          defaultMessage: "Next",
+                          description:
+                            "Label for the next page button in icon search results",
+                        })}
                       </Button>
                     </div>
                   </div>
@@ -380,10 +432,10 @@ export const App = () => {
       {/* Fixed Favorites Section */}
       <div
         style={{
-          position: 'fixed',
-          bottom: '24px',
-          left: '17px',
-          right: '11px',
+          position: "fixed",
+          bottom: "24px",
+          left: "17px",
+          right: "11px",
           zIndex: 100,
         }}
       >
@@ -391,9 +443,13 @@ export const App = () => {
           {favorites.length > 0 ? (
             <>
               <Text size="small" tone="secondary">
-                Favorites ({favorites.length})
+                <FormattedMessage
+                  defaultMessage="Favorites ({count})"
+                  description="Label showing number of favorite icons"
+                  values={{ count: favorites.length }}
+                />
               </Text>
-              <div style={{ marginTop: '8px' }}>
+              <div style={{ marginTop: "8px" }}>
                 <IconGrid
                   icons={paginatedFavorites}
                   onInsert={insertIcon}
@@ -407,37 +463,65 @@ export const App = () => {
               {totalFavoritesPages > 1 && (
                 <div
                   style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    width: '100%',
-                    padding: '12px 0px 4px 4px',
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    width: "100%",
+                    padding: "12px 0px 4px 4px",
                   }}
                 >
                   <Button
                     variant="secondary"
-                    onClick={() => setFavoritesPage((prev) => Math.max(1, prev - 1))}
-                    disabled={favoritesPage === 1}
+                    onClick={() => {
+                      setCurrentPage((prev) => Math.max(1, prev - 1));
+                      searchInputRef.current?.focus();
+                    }}
+                    disabled={currentPage === 1}
                   >
-                    Prev
+                    {intl.formatMessage({
+                      defaultMessage: "Prev",
+                      description:
+                        "Label for the previous page button in icon search results",
+                    })}
                   </Button>
                   <Text size="small" tone="secondary">
-                    {favoritesPage} / {totalFavoritesPages}
+                    <FormattedMessage
+                      defaultMessage="{current} / {total}"
+                      description="Shows current page and total pages, e.g., 2 / 5"
+                      values={{ current: currentPage, total: totalPages }}
+                    />
                   </Text>
                   <Button
                     variant="secondary"
-                    onClick={() => setFavoritesPage((prev) => Math.min(totalFavoritesPages, prev + 1))}
-                    disabled={favoritesPage === totalFavoritesPages}
+                    onClick={() => {
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+                      searchInputRef.current?.focus();
+                    }}
+                    disabled={currentPage === totalPages}
                   >
-                    Next
+                    {intl.formatMessage({
+                      defaultMessage: "Next",
+                      description:
+                        "Label for the next page button in icon search results",
+                    })}
                   </Button>
                 </div>
               )}
             </>
           ) : (
-            <Box padding="1u" display="flex" alignItems="center" justifyContent="center">
+            <Box
+              padding="1u"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
               <Text tone="secondary" alignment="center">
-                Click the heart icon on any icon to add it to favorites
+                {intl.formatMessage({
+                  defaultMessage:
+                    "Click the heart icon on any icon to add it to favorites",
+                  description:
+                    "Message shown when the user has no favorite icons",
+                })}
               </Text>
             </Box>
           )}

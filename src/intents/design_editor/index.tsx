@@ -1,15 +1,18 @@
 import "@canva/app-ui-kit/styles.css";
 import { AppUiProvider } from "@canva/app-ui-kit";
+import { AppI18nProvider } from "@canva/app-i18n-kit"; // ← Add this import
 import type { DesignEditorIntent } from "@canva/intents/design";
 import { createRoot } from "react-dom/client";
-import { App } from "./app";  // Adjust path if needed (e.g., "./app" or "../app")
+import { App } from "./app";
 
 async function render() {
   const root = createRoot(document.getElementById("root") as HTMLElement);
   root.render(
-    <AppUiProvider>
-      <App />
-    </AppUiProvider>
+    <AppI18nProvider>
+      <AppUiProvider>
+        <App />
+      </AppUiProvider>
+    </AppI18nProvider>,
   );
 }
 
@@ -19,7 +22,6 @@ const designEditor: DesignEditorIntent = {
 
 export default designEditor;
 
-// Hot reload support
 if (module.hot) {
-  module.hot.accept("./app", render);  // Adjust path to match your App import
+  module.hot.accept("./app", render);
 }

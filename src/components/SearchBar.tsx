@@ -1,6 +1,6 @@
-// src/components/SearchBar.tsx
-import React, { useRef, useEffect } from 'react';
-import { SearchInputMenu, Box } from '@canva/app-ui-kit';
+import React, { useRef, useEffect } from "react";
+import { SearchInputMenu, Box } from "@canva/app-ui-kit";
+import { useIntl } from "react-intl";
 
 type Props = {
   value: string;
@@ -16,11 +16,10 @@ export const SearchBar: React.FC<Props> = ({
   inputRef,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-
+  const intl = useIntl();
   useEffect(() => {
-    const input = containerRef.current?.querySelector('input');
+    const input = containerRef.current?.querySelector("input");
     if (input instanceof HTMLInputElement) {
-      // eslint-disable-next-line no-param-reassign
       inputRef.current = input;
     }
   }, [inputRef]);
@@ -29,7 +28,10 @@ export const SearchBar: React.FC<Props> = ({
     <Box paddingEnd="1u">
       <div ref={containerRef}>
         <SearchInputMenu
-          placeholder="Search icons (e.g., heart, arrow, star)"
+          placeholder={intl.formatMessage({
+            defaultMessage: "Search icons (e.g., heart, arrow, star)",
+            description: "Placeholder text in the search input field",
+          })}
           value={value}
           onChange={onChange}
           onClear={onClear}
