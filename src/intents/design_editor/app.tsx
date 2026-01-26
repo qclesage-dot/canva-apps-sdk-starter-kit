@@ -9,7 +9,6 @@ import {
   Text,
 } from "@canva/app-ui-kit";
 import { ui, addNativeElement } from "@canva/design";
-import { Flyout } from "@canva/app-ui-kit";
 import { upload } from "@canva/asset";
 import { useFeatureSupport } from "@canva/app-hooks";
 
@@ -28,16 +27,15 @@ export const App = () => {
   const [query, setQuery] = useState("");
   const [icons, setIcons] = useState<Icon[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [favoritesPage] = useState(1);
+  const [favoritesPage, setFavoritesPage] = useState(1);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const intl = useIntl();
   const isSupported = useFeatureSupport();
   const { favorites, toggle: toggleFavorite, isFavorite } = useFavorites();
   const isDarkMode = useDarkMode();
 
-  const ITEMS_PER_PAGE = 20;
+  const ITEMS_PER_PAGE = 24;
   const FAVORITES_PER_PAGE = 8;
   const totalPages = Math.ceil(icons.length / ITEMS_PER_PAGE);
   const totalFavoritesPages = Math.ceil(favorites.length / FAVORITES_PER_PAGE);
@@ -52,64 +50,47 @@ export const App = () => {
     favoritesPage * FAVORITES_PER_PAGE,
   );
 
-  // Fetch icons when query changes
-  useEffect(() => {
-    if (query.length < 2) {
-      setIcons([]);
-      setIsOpen(false);
-      return;
-    }
+const fetchIcons = async (q: string) => {
+  if (q.length < 2) {
+    setIcons([]);
+    return;
+  }
 
-    const timeout = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(query)}&limit=50`,
-        );
-        const data = await res.json();
-        const results = data.icons.map((icon: string) => ({
-          id: icon,
-          title: icon,
-          thumbnailUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=48&width=48`,
-          svgUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=80&width=80`,
-        }));
-        setIcons(results);
-        setIsOpen(true);
-      } catch (err) {
-        console.error(err);
-        setIcons([]);
-      }
-      setLoading(false);
-    }, 600);
+  setLoading(true);
+  try {
+    const res = await fetch(
+      `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(q)}&limit=50`
+    );
 
-    return () => clearTimeout(timeout);
-  }, [query]);
+    const data = await res.json();
 
-  // Keep focus on search input when flyout is open
-  useLayoutEffect(() => {
-    if (!isOpen) return;
+    const results = data.icons.map((icon: string) => ({
+      id: icon,
+      title: icon,
+      thumbnailUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=48&width=48`,
+      svgUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=80&width=80`,
+    }));
 
-    const inputElement = searchInputRef.current;
-    if (!inputElement) return;
+    setIcons(results);
+    setCurrentPage(1); // important UX fix
+  } finally {
+    setLoading(false);
+  }
+};
 
-    // Focus immediately before browser paint
-    inputElement.focus();
+// Default search on load
+useEffect(() => {
+  fetchIcons("icon");
+}, []);
 
-    // Add document-level focus capture to prevent any focus theft
-    const preventFocusTheft = (e: FocusEvent) => {
-      if (e.target !== inputElement && e.target instanceof HTMLElement) {
-        e.preventDefault();
-        inputElement.focus();
-      }
-    };
+// User typing debounce
+useEffect(() => {
+  if (query.length < 2) return;   // 👈 prevent wipe
+  const timeout = setTimeout(() => fetchIcons(query), 600);
+  return () => clearTimeout(timeout);
+}, [query]);
 
-    // Use capture phase (true) to intercept focus before it reaches target
-    document.addEventListener("focus", preventFocusTheft, true);
 
-    return () => {
-      document.removeEventListener("focus", preventFocusTheft, true);
-    };
-  }, [isOpen]);
 
   const uploadIconSvg = async (svgUrl: string) => {
     const res = await fetch(svgUrl);
@@ -163,7 +144,6 @@ export const App = () => {
         altText: undefined,
       });
 
-      setIsOpen(false);
     } catch (err) {
       console.error("Failed to insert icon:", err);
       alert("Failed to insert icon. Please try again.");
@@ -173,13 +153,8 @@ export const App = () => {
   const handleClearSearch = () => {
     setQuery("");
     setIcons([]);
-    setIsOpen(false);
   };
 
-  const handleCloseFlyout = () => {
-    setIsOpen(false);
-    setCurrentPage(1);
-  };
 
   return (
     <>
@@ -197,236 +172,129 @@ export const App = () => {
           onClear={handleClearSearch}
           inputRef={searchInputRef}
         />
+          <Box padding="1u">
+  {loading && <LoadingIndicator size="medium" />}
 
-        <Flyout
-          open={isOpen}
-          onRequestClose={handleCloseFlyout}
-          trigger={<div style={{ height: "0" }} />}
-          placement="bottom-start"
-        >
-          <div
-            style={{
-              padding: "2px",
-              minWidth: "240px",
-              maxWidth: "245px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "12px",
-            }}
-            onMouseEnter={() => searchInputRef.current?.focus()}
-            onMouseMove={() => {
-              if (document.activeElement !== searchInputRef.current) {
-                searchInputRef.current?.focus();
-              }
-            }}
-          >
-            {loading && <LoadingIndicator size="medium" />}
+  {icons.length === 0 && !loading && query.length >= 2 && (
+    <Text tone="secondary">
+      {intl.formatMessage({
+        defaultMessage: 'No results – try "home" or "user"',
+      })}
+    </Text>
+  )}
 
-            {icons.length === 0 && !loading && query.length >= 2 && (
-              <Text tone="secondary">
-                {intl.formatMessage({
-                  defaultMessage: 'No results – try "home" or "user"',
-                  description: "Message shown when a search returns no icons",
-                })}
-              </Text>
-            )}
+  {paginatedIcons.length > 0 && (
+    
+    <>   <Text size="small" tone="secondary" >
+    {query.length > 0
+      ? intl.formatMessage(
+          { defaultMessage: "Showing results for {query}" },
+          { query }
+        )
+      : intl.formatMessage({ defaultMessage: "Popular icons" })}
+  </Text>
 
-            {paginatedIcons.length > 0 && (
-              <>
-                {/* Icon Grid – full width, centered items */}
-                <div
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "6px",
+          width: "100%",
+        }}
+      >
+        {paginatedIcons.map((icon) => {
+          const handleDragStart = createDragHandler(icon);
+
+          return (
+            <div key={icon.id} style={{ position: "relative" }}>
+              <div
+                draggable
+                onDragStart={handleDragStart}
+                onClick={() => insertIcon(icon.svgUrl)}
+                style={{
+                  cursor: "grab",
+                  borderRadius: "6px",
+                }}
+              >
+                <Box
+                  padding="0.5u"
+                  border="low"
+                  borderRadius="standard"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <img
+                    src={icon.thumbnailUrl}
+                    alt={icon.title}
+                    width={48}
+                    height={48}
+                  />
+                </Box>
+              </div>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(icon);
+                }}
+                style={{
+                  position: "absolute",
+                  top: -5,
+                  right: -5,
+                  background: "white",
+                  borderRadius: "50%",
+                  border: "none",
+                  fontSize: "15px",
+                }}
+              >
+                {isFavorite(icon.id) ? FAVORITE_ICON : UNFAVORITE_ICON}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+                        <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: "4px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     width: "100%",
-                    padding: "0 4px",
-                    boxSizing: "border-box",
+                    padding: "4px 10px 4px 0px",
                   }}
                 >
-                  {paginatedIcons.map((icon) => {
-                    const handleDragStart = createDragHandler(icon);
+          
+          <Button
+            variant="secondary"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </Button>
 
-                    return (
-                      <div key={icon.id} style={{ position: "relative" }}>
-                        <div
-                          draggable={true}
-                          onDragStart={(e) => {
-                            handleDragStart(e);
-                            // Hide the thumbnail during drag
-                            e.currentTarget.style.opacity = "0";
-                          }}
-                          onDragEnd={(e) => {
-                            // Restore visibility after drag
-                            e.currentTarget.style.opacity = "1";
-                          }}
-                          onClick={() => {
-                            insertIcon(icon.svgUrl);
-                            searchInputRef.current?.focus();
-                          }}
-                          style={{
-                            cursor: "grab",
-                            width: "100%",
-                            padding: 0,
-                            background: "transparent",
-                            border: "none",
-                            boxSizing: "border-box",
-                            transition: "opacity 0.15s ease",
-                          }}
-                        >
-                          <div
-                            style={{
-                              backgroundColor: isDarkMode
-                                ? "#E8E8E8"
-                                : undefined,
-                              borderRadius: "4px",
-                            }}
-                          >
-                            <Box
-                              padding="0.5u"
-                              border="low"
-                              borderRadius="standard"
-                              display="flex"
-                              alignItems="center"
-                              justifyContent="center"
-                            >
-                              <img
-                                src={icon.thumbnailUrl}
-                                alt={icon.title}
-                                width={48}
-                                height={48}
-                              />
-                            </Box>
-                          </div>
-                        </div>
+          <Text tone="secondary">
+            {currentPage} / {totalPages}
+          </Text>
 
-                        {/* Favorite toggle button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite(icon);
-                            searchInputRef.current?.focus();
-                          }}
-                          style={{
-                            position: "absolute",
-                            top: "0px",
-                            right: "0px",
-                            width: "12px",
-                            height: "12px",
-                            borderRadius: "50%",
-                            border: "none",
-                            background: "rgba(255, 255, 255, 0.9)",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "14px",
-                            padding: "0",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                            transition: "transform 0.1s ease",
-                          }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.transform = "scale(1.1)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.transform = "scale(1)")
-                          }
-                          title={
-                            isFavorite(icon.id)
-                              ? intl.formatMessage({
-                                  defaultMessage: "Remove from favorites",
-                                  description:
-                                    "Tooltip for button to remove an icon from favorites",
-                                })
-                              : intl.formatMessage({
-                                  defaultMessage: "Add to favorites",
-                                  description:
-                                    "Tooltip for button to add an icon to favorites",
-                                })
-                          }
-                        >
-                          {isFavorite(icon.id)
-                            ? FAVORITE_ICON
-                            : UNFAVORITE_ICON}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              setCurrentPage((p) => Math.min(totalPages, p + 1))
+            }
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
 
-                {/* Pagination – edges aligned with icons */}
-                {totalPages > 1 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      width: "100%",
-                      padding: "8px 1px 4px 7px",
-                    }}
-                  >
-                    <div
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        searchInputRef.current?.focus();
-                      }}
-                      tabIndex={-1}
-                      style={{ outline: "none" }}
-                    >
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          setCurrentPage((prev) => Math.max(1, prev - 1));
-                          searchInputRef.current?.focus();
-                        }}
-                        disabled={currentPage === 1}
-                      >
-                        {intl.formatMessage({
-                          defaultMessage: "Prev",
-                          description:
-                            "Label for the previous page button in icon search results",
-                        })}
-                      </Button>
-                    </div>
-                    <Text size="small" tone="secondary">
-                      <FormattedMessage
-                        defaultMessage="{current} / {total}"
-                        description="Shows current page and total pages, e.g., 2 / 5"
-                        values={{ current: currentPage, total: totalPages }}
-                      />
-                    </Text>
-                    <div
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        searchInputRef.current?.focus();
-                      }}
-                      tabIndex={-1}
-                      style={{ outline: "none" }}
-                    >
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          setCurrentPage((prev) =>
-                            Math.min(totalPages, prev + 1),
-                          );
-                          searchInputRef.current?.focus();
-                        }}
-                        disabled={currentPage === totalPages}
-                      >
-                        {intl.formatMessage({
-                          defaultMessage: "Next",
-                          description:
-                            "Label for the next page button in icon search results",
-                        })}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </Flyout>
+        </div>
+      )}
+    </>
+  )}
+</Box>
+
       </Rows>
 
       {/* Fixed Favorites Section */}
@@ -467,43 +335,33 @@ export const App = () => {
                     justifyContent: "space-between",
                     alignItems: "center",
                     width: "100%",
-                    padding: "12px 0px 4px 4px",
+                    padding: "0px 0px 4px 4px",
                   }}
                 >
                   <Button
                     variant="secondary"
-                    onClick={() => {
-                      setCurrentPage((prev) => Math.max(1, prev - 1));
-                      searchInputRef.current?.focus();
-                    }}
-                    disabled={currentPage === 1}
+                    onClick={() =>
+                      setFavoritesPage((p) => Math.max(1, p - 1))
+                    }
+                    disabled={favoritesPage === 1}
                   >
-                    {intl.formatMessage({
-                      defaultMessage: "Prev",
-                      description:
-                        "Label for the previous page button in icon search results",
-                    })}
+                    Prev
                   </Button>
+                  
                   <Text size="small" tone="secondary">
-                    <FormattedMessage
-                      defaultMessage="{current} / {total}"
-                      description="Shows current page and total pages, e.g., 2 / 5"
-                      values={{ current: currentPage, total: totalPages }}
-                    />
+                    {favoritesPage} / {totalFavoritesPages}
                   </Text>
+                  
                   <Button
                     variant="secondary"
-                    onClick={() => {
-                      setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-                      searchInputRef.current?.focus();
-                    }}
-                    disabled={currentPage === totalPages}
+                    onClick={() =>
+                      setFavoritesPage((p) =>
+                        Math.min(totalFavoritesPages, p + 1)
+                      )
+                    }
+                    disabled={favoritesPage === totalFavoritesPages}
                   >
-                    {intl.formatMessage({
-                      defaultMessage: "Next",
-                      description:
-                        "Label for the next page button in icon search results",
-                    })}
+                    Next
                   </Button>
                 </div>
               )}

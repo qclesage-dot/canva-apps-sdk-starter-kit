@@ -1,0 +1,276 @@
+================================================================================
+                         ICONFLOW - CANVA APP DOCUMENTATION
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. App Overview
+2. How the Platform Works
+3. Where to Find Content
+4. Features and Functionality
+5. Technical Architecture
+6. Testing Guide for Reviewers
+
+
+================================================================================
+1. APP OVERVIEW
+================================================================================
+
+IconFlow is a Canva app that provides users with instant access to over 200,000
+high-quality icons directly within the Canva design editor. Users can search,
+preview, and insert icons into their designs without leaving Canva.
+
+Primary Purpose:
+- Enable Canva users to quickly find and add professional icons to their designs
+- Provide a seamless icon browsing and insertion experience
+- Support both click-to-insert and drag-and-drop workflows
+
+
+================================================================================
+2. HOW THE PLATFORM WORKS
+================================================================================
+
+ICON SOURCE
+-----------
+The IconFlow collection is an open-source aggregation of 100+ popular icon sets. 
+These include:
+- Material Design Icons
+- Font Awesome
+- Heroicons
+- Feather Icons
+- Tabler Icons
+- And many more
+
+The icons are served through our IconFlow API hosted on Google Cloud Run:
+- API Base URL: https://iconflow-api-568416828650.us-central1.run.app
+
+API Endpoints:
+1. Search Icons:
+   GET /search?query={keyword}&limit=50
+   Returns a list of icon IDs matching the search query
+
+2. Retrieve Icon:
+   GET /{icon-id}.svg?height={h}&width={w}
+   Returns the SVG file for the specified icon
+
+CANVA INTEGRATION
+-----------------
+The app integrates with Canva using the official Canva Apps SDK:
+
+- @canva/design: For inserting elements onto the canvas
+  - addNativeElement(): Inserts icons at canvas center (click-to-insert)
+  - ui.startDragToPoint(): Enables drag-and-drop placement
+  - ui.startDragToCursor(): Fallback for older Canva versions
+
+- @canva/asset: For uploading SVG files as Canva assets
+  - upload(): Converts SVG data URLs to Canva image references
+
+- @canva/app-ui-kit: For consistent UI components
+  - Buttons, Text, Box, Flyout, etc.
+
+DATA STORAGE
+------------
+- Favorites are stored locally in the browser using localStorage
+- Storage key: "iconvault_favorites"
+- No server-side user data storage
+- No authentication required
+
+
+================================================================================
+3. WHERE TO FIND CONTENT
+================================================================================
+
+SEARCH FUNCTIONALITY
+--------------------
+Location: Main app interface (top of the panel)
+
+How to use:
+1. Type at least 2 characters in the search bar
+2. Results appear automatically after a 600ms debounce delay
+3. A flyout displays showing up to 50 matching icons
+4. Results are paginated (20 icons per page)
+
+Example searches to try:
+- "home" - House and home-related icons
+- "user" - User profile and people icons
+- "arrow" - Directional arrow icons
+- "heart" - Heart and love icons
+- "star" - Star and rating icons
+- "check" - Checkmark and validation icons
+- "menu" - Menu and navigation icons
+
+FAVORITES SECTION
+-----------------
+Location: Bottom of the app panel (fixed position)
+
+How to use:
+1. Click the heart icon on any search result to add it to favorites
+2. Favorited icons appear in the bottom section for quick access
+3. Click the heart again to remove from favorites
+4. Favorites persist across sessions (stored in localStorage)
+
+ICON GRID
+---------
+Location: Search results flyout and favorites section
+
+Layout:
+- 4 icons per row
+- 48x48 pixel thumbnails
+- Hover effects on favorite buttons
+- Visual feedback during drag operations
+
+
+================================================================================
+4. FEATURES AND FUNCTIONALITY
+================================================================================
+
+FEATURE 1: SEARCH ICONS
+-----------------------
+- Real-time search with 600ms debounce
+- Minimum 2 characters required
+- Returns up to 50 results
+- Results paginated at 20 per page
+
+FEATURE 2: INSERT ICONS (CLICK)
+-------------------------------
+- Click any icon to insert it onto the canvas
+- Icon inserted at default canvas position
+- Uses addNativeElement() API
+- Flyout closes after successful insertion
+
+FEATURE 3: INSERT ICONS (DRAG & DROP)
+-------------------------------------
+- Drag any icon from search results or favorites
+- Drop onto canvas at desired position
+- Visual feedback: icon fades during drag
+- Uses startDragToPoint() with startDragToCursor() fallback
+
+FEATURE 4: FAVORITES
+--------------------
+- Click heart icon to add/remove favorites
+- Favorites persist in localStorage
+- Quick access from bottom panel
+- Supports both click and drag insertion
+
+FEATURE 5: PAGINATION
+---------------------
+- "Prev" and "Next" buttons for navigation
+- Page indicator shows current/total pages
+- Search results: 20 per page
+- Favorites: 8 per page
+
+FEATURE 6: DARK MODE SUPPORT
+----------------------------
+- Automatic detection of Canva's dark mode
+- Icons display with light background in dark mode
+- Uses CSS media query: prefers-color-scheme: dark
+
+
+================================================================================
+5. TECHNICAL ARCHITECTURE
+================================================================================
+
+PROJECT STRUCTURE
+-----------------
+src/
+  intents/
+    design_editor/
+      app.tsx              <- Main application component
+  components/
+    SearchBar.tsx          <- Search input with clear button
+    IconGrid.tsx           <- Grid layout for displaying icons
+    IconItem.tsx           <- Individual icon with favorite button
+    FavoritesSection.tsx   <- Favorites display section
+  hooks/
+    useFavorites.ts        <- Favorites state management hook
+    useDarkMode.ts         <- Dark mode detection hook
+  types/
+    index.ts               <- TypeScript type definitions
+
+KEY DEPENDENCIES
+----------------
+- React 19.2.1
+- @canva/app-ui-kit 5.4.0
+- @canva/design 2.7.5
+- @canva/asset 2.3.0
+- react-intl 7.1.11 (internationalization)
+
+ICON TYPE DEFINITION
+--------------------
+interface Icon {
+  id: string;           // Unique icon identifier
+  title: string;        // Display name
+  thumbnailUrl: string; // 48x48 preview URL
+  svgUrl: string;       
+}
+
+
+================================================================================
+6. TESTING GUIDE FOR REVIEWERS
+================================================================================
+
+BASIC FUNCTIONALITY TEST
+------------------------
+1. Open the app in Canva's design editor
+2. Verify the app title "IconFlow - 200k+ Icons" is displayed
+3. Verify the search bar is visible and focused
+
+SEARCH TEST
+-----------
+1. Type "home" in the search bar
+2. Verify: Results flyout appears with home-related icons
+3. Verify: Pagination controls appear if results exceed 20
+4. Clear the search and try "arrow"
+5. Verify: Different icons appear
+
+CLICK-TO-INSERT TEST
+--------------------
+1. Search for any icon (e.g., "star")
+2. Click on an icon in the search results
+3. Verify: Icon is added to the canvas
+4. Verify: Flyout closes after insertion
+
+DRAG-AND-DROP TEST
+------------------
+1. Search for any icon (e.g., "heart")
+2. Drag an icon from the search results to the canvas
+3. Verify: Icon appears at the drop location
+4. Verify: Visual feedback during drag (icon fades)
+
+FAVORITES TEST
+--------------
+1. Search for an icon (e.g., "check")
+2. Click the heart icon on one of the results
+3. Verify: Heart icon changes to filled state
+4. Verify: Icon appears in the Favorites section at bottom
+5. Click the heart again to remove from favorites
+6. Verify: Icon is removed from Favorites section
+
+PAGINATION TEST
+---------------
+1. Search for a common term (e.g., "arrow") with many results
+2. Verify: Page indicator shows "1 / X"
+3. Click "Next" button
+4. Verify: Page indicator updates, new icons shown
+5. Click "Prev" button
+6. Verify: Returns to previous page
+
+DARK MODE TEST
+--------------
+1. Switch Canva to dark mode (if available)
+2. Open the app
+3. Verify: Icons have light backgrounds for visibility
+4. Switch back to light mode
+5. Verify: Icons display normally without extra background
+
+PERSISTENCE TEST
+----------------
+1. Add several icons to favorites
+2. Close the app/refresh the page
+3. Reopen the app
+4. Verify: Favorites are still present
+
+
+================================================================================
+                              END OF DOCUMENTATION
+================================================================================

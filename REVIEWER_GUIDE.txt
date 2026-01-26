@@ -1,0 +1,111 @@
+================================================================================
+                    ICONFLOW - CANVA APP REVIEWER GUIDE
+================================================================================
+
+This guide is specifically prepared for Canva's app review team to help test
+and evaluate the IconFlow app submission.
+
+
+================================================================================
+QUICK START FOR REVIEWERS
+================================================================================
+
+1. Open any Canva design
+2. Launch the IconFlow app from the apps panel
+3. The app will display:
+   - Title: "IconFlow - 200k+ Icons"
+   - Search bar (auto-focused)
+   - Favorites section at the bottom
+
+4. To test the app:
+   - Search: Type "home", "star", "user", or any keyword
+   - Insert: Click any icon OR drag it to the canvas
+   - Favorite: Click the heart icon on any search result
+
+
+================================================================================
+CONTENT SOURCE INFORMATION
+================================================================================
+
+WHERE ICONS COME FROM
+---------------------
+The IconFlow collection is an open-source aggregation of 100+ popular icon 
+sets. These include:
+
+- Material Design Icons (Google)
+- Font Awesome
+- Heroicons (Tailwind CSS)
+- Feather Icons
+- Tabler Icons
+- Bootstrap Icons
+- Remix Icons
+- And 90+ more icon sets
+
+All icons are:
+- Open source and free to use
+- SVG format for crisp scaling
+- Available for commercial use
+
+API DETAILS
+-----------
+Icons are served from our API hosted on Google Cloud Run:
+- Base URL: https://iconflow-api-568416828650.us-central1.run.app
+- No authentication required
+- No rate limiting for normal usage
+
+
+================================================================================
+KNOWN BEHAVIORS (NOT BUGS)
+================================================================================
+
+1. SEARCH DELAY
+   - Search has a 600ms debounce delay
+   - This is intentional to prevent excessive API calls
+   - Results appear after user stops typing
+
+2. MINIMUM CHARACTERS
+   - Search requires at least 2 characters
+   - Fewer characters will not trigger a search
+
+3. FAVORITES STORAGE
+   - Favorites are stored in browser localStorage
+   - Clearing browser data will remove favorites
+   - This is by design (no account/login required)
+
+4. ICON SIZES
+   - Thumbnails display at 48x48 pixels
+   - Users can resize after insertion
+
+
+================================================================================
+APP PERMISSIONS AND DATA USAGE
+================================================================================
+
+DATA COLLECTED
+--------------
+- None. The app does not collect or transmit user data.
+
+DATA STORED LOCALLY
+-------------------
+- Favorite icons (localStorage key: "iconvault_favorites")
+- Stored as JSON array of icon objects
+- Only stores icon metadata (id, title, URLs)
+
+EXTERNAL CONNECTIONS
+--------------------
+- IconFlow API (Google Cloud Run): For icon search and retrieval
+- No third-party analytics or tracking
+
+CANVA API USAGE
+---------------
+- @canva/design: Insert elements to canvas
+- @canva/asset: Upload SVG assets
+- @canva/app-ui-kit: UI components
+- @canva/app-hooks: Feature detection
+
+
+================================================================================
+CONTACT INFORMATION
+================================================================================
+
+For questions or issues during the review process contact George Noble at QCLesage@Gmail.com
