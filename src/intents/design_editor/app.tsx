@@ -7,15 +7,18 @@ import {
   Box,
   Button,
   Text,
+  Swatch,
 } from "@canva/app-ui-kit";
 import { ui, addNativeElement } from "@canva/design";
-import { upload } from "@canva/asset";
+import { upload, openColorSelector } from "@canva/asset";
+import type { ColorSelectionEvent, ColorSelectionScope } from "@canva/asset";
 import { useFeatureSupport } from "@canva/app-hooks";
 
 import { SearchBar } from "../../components/SearchBar";
 import { IconGrid } from "../../components/IconGrid";
 import { useFavorites } from "../../hooks/useFavorites";
 import { useDarkMode } from "../../hooks/useDarkMode";
+import { useColorHistory } from "../../hooks/useColorHistory";
 import type { Icon } from "../../types";
 import { useIntl, FormattedMessage } from "react-intl";
 
@@ -29,11 +32,13 @@ export const App = () => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [favoritesPage, setFavoritesPage] = useState(1);
+  const [selectedColor, setSelectedColor] = useState<string>("#000000");
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const intl = useIntl();
   const isSupported = useFeatureSupport();
   const { favorites, toggle: toggleFavorite, isFavorite } = useFavorites();
   const isDarkMode = useDarkMode();
+  const { recentColors, addColor } = useColorHistory();
 
   const ITEMS_PER_PAGE = 24;
   const FAVORITES_PER_PAGE = 8;
@@ -50,6 +55,22 @@ export const App = () => {
     favoritesPage * FAVORITES_PER_PAGE,
   );
 
+  const handleColorSelect = async <T extends ColorSelectionScope>(
+    e: ColorSelectionEvent<T>,
+  ) => {
+    if (e.selection.type === "solid") {
+      setSelectedColor(e.selection.hexString);
+      addColor(e.selection.hexString);
+    }
+  };
+
+  const openColorPicker = (boundingRect: DOMRect) => {
+    openColorSelector(boundingRect, {
+      onColorSelect: handleColorSelect,
+      scopes: ["solid"],
+    });
+  };
+
 const fetchIcons = async (q: string) => {
   if (q.length < 2) {
     setIcons([]);
@@ -58,6 +79,9 @@ const fetchIcons = async (q: string) => {
 
   setLoading(true);
   try {
+    // URL encode the # as %23 for the API
+    const hexParam = selectedColor.replace("#", "%23");
+    
     const res = await fetch(
       `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(q)}&limit=50`
     );
@@ -67,8 +91,8 @@ const fetchIcons = async (q: string) => {
     const results = data.icons.map((icon: string) => ({
       id: icon,
       title: icon,
-      thumbnailUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=48&width=48`,
-      svgUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=80&width=80`,
+      thumbnailUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=48&width=48&color=${hexParam}`,
+      svgUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=80&width=80&color=${hexParam}`,
     }));
 
     setIcons(results);
@@ -88,7 +112,7 @@ useEffect(() => {
   if (query.length < 2) return;   // 👈 prevent wipe
   const timeout = setTimeout(() => fetchIcons(query), 600);
   return () => clearTimeout(timeout);
-}, [query]);
+}, [query, selectedColor]);
 
 
 
@@ -172,6 +196,32 @@ useEffect(() => {
           onClear={handleClearSearch}
           inputRef={searchInputRef}
         />
+        
+        {/* Canva Color Selector */}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "4px", alignItems: "center" }}>
+          <Swatch
+            fill={[selectedColor]}
+            onClick={(e) =>
+              openColorPicker(e.currentTarget.getBoundingClientRect())
+            }
+          />
+          
+          {/* Recent colors */}
+          {recentColors.map((c) => (
+            <div
+              key={c}
+              onClick={() => setSelectedColor(c)}
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                backgroundColor: c,
+                border: "2px solid #ddd",
+                cursor: "pointer"
+              }}
+            />
+          ))}
+        </div>
           <Box padding="1u">
   {loading && <LoadingIndicator size="medium" />}
 
