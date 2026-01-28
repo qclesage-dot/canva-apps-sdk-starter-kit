@@ -22,7 +22,9 @@ export const useColorHistory = () => {
   // 3. Helper to update the list
   const addColor = (color: string) => {
     setRecentColors((prev) => {
-      const filtered = prev.filter((c) => c.toLowerCase() !== color.toLowerCase());
+      const filtered = prev.filter(
+        (c) => c.toLowerCase() !== color.toLowerCase(),
+      );
       return [color, ...filtered].slice(0, 6);
     });
   };

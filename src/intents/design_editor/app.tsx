@@ -10,7 +10,7 @@ import {
   ColorSelector,
   Alert,
 } from "@canva/app-ui-kit";
-import { ui, addElementAtPoint  } from "@canva/design";
+import { ui, addElementAtPoint } from "@canva/design";
 import { upload, openColorSelector } from "@canva/asset";
 import type { ColorSelectionEvent, ColorSelectionScope } from "@canva/asset";
 import { useFeatureSupport } from "@canva/app-hooks";
@@ -37,7 +37,13 @@ export const App = () => {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const intl = useIntl();
   const isSupported = useFeatureSupport();
-  const { favorites, toggle: toggleFavorite, isFavorite, isLimitReached, setIsLimitReached } = useFavorites();
+  const {
+    favorites,
+    toggle: toggleFavorite,
+    isFavorite,
+    isLimitReached,
+    setIsLimitReached,
+  } = useFavorites();
   const isDarkMode = useDarkMode();
   const { recentColors, addColor } = useColorHistory();
 
@@ -45,7 +51,6 @@ export const App = () => {
   const FAVORITES_PER_PAGE = 8;
   const totalPages = Math.ceil(icons.length / ITEMS_PER_PAGE);
   const totalFavoritesPages = Math.ceil(favorites.length / FAVORITES_PER_PAGE);
-  const lastCommittedColor = useRef<string>(selectedColor);
   const [draftColor, setDraftColor] = useState(selectedColor);
   const [committedColor, setCommittedColor] = useState(selectedColor);
   const pickerOpen = useRef(false);
@@ -77,71 +82,71 @@ export const App = () => {
     });
   };
 
-const fetchIcons = async (q: string, color: string) => {
-  if (q.length < 2) return;
+  const fetchIcons = async (q: string, color: string) => {
+    if (q.length < 2) return;
 
-  const key = `${q.toLowerCase()}_${color.toUpperCase()}`;
+    const key = `${q.toLowerCase()}_${color.toUpperCase()}`;
 
-  // 1️⃣ Cache hit → instant UI update, no API call
-  if (cache.current.has(key)) {
-    setIcons(cache.current.get(key)!);
-    setLoading(false);
-    return;
-  }
-  if (cache.current.size > 100) {
-  cache.current.clear();
-}
+    // 1️⃣ Cache hit → instant UI update, no API call
+    if (cache.current.has(key)) {
+      setIcons(cache.current.get(key)!);
+      setLoading(false);
+      return;
+    }
+    if (cache.current.size > 100) {
+      cache.current.clear();
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const hexParam = color.replace("#", "%23");
+    try {
+      const hexParam = color.replace("#", "%23");
 
-    const res = await fetch(
-      `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(q)}&limit=72`
-    );
+      const res = await fetch(
+        `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(q)}&limit=72`,
+      );
 
-    const data = await res.json();
+      const data = await res.json();
 
-    const results = data.icons.map((icon: string) => ({
-      id: icon,
-      title: icon,
-      thumbnailUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=48&width=48&color=${hexParam}`,
-      svgUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=80&width=80&color=${hexParam}`,
-    }));
+      const results = data.icons.map((icon: string) => ({
+        id: icon,
+        title: icon,
+        thumbnailUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=48&width=48&color=${hexParam}`,
+        svgUrl: `https://iconflow-api-568416828650.us-central1.run.app/${icon}.svg?height=80&width=80&color=${hexParam}`,
+      }));
 
-    setIcons(results);
-    cache.current.set(key, results);
-  } finally {
-    setLoading(false);
-  }
-};
-const commitColor = (color: string) => {
-  setSelectedColor(color);
-  setDraftColor(color);
+      setIcons(results);
+      cache.current.set(key, results);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const commitColor = (color: string) => {
+    setSelectedColor(color);
+    setDraftColor(color);
 
-  // only search if query is valid
-  if (query.length >= 2) {
-    fetchIcons(query, color);
-  }
-};
+    // only search if query is valid
+    if (query.length >= 2) {
+      fetchIcons(query, color);
+    }
+  };
 
-// Default search on load
-useEffect(() => {
-  fetchIcons("icon", committedColor);
-}, []);
+  // Default search on load
+  useEffect(() => {
+    fetchIcons("icon", committedColor);
+  }, []);
 
-// User typing debounce
-useEffect(() => {
-  if (pickerOpen.current) return; 
-  if (query.length < 2 && icons.length === 0) return;
+  // User typing debounce
+  useEffect(() => {
+    if (pickerOpen.current) return;
+    if (query.length < 2 && icons.length === 0) return;
 
-  const timeout = setTimeout(() => {
-    fetchIcons(query || "icon", committedColor);
-  }, 600);
+    const timeout = setTimeout(() => {
+      fetchIcons(query || "icon", committedColor);
+    }, 600);
 
-  return () => clearTimeout(timeout);
-}, [query, committedColor]);
+    return () => clearTimeout(timeout);
+  }, [query, committedColor]);
 
   const uploadIconSvg = async (svgUrl: string) => {
     const res = await fetch(svgUrl);
@@ -185,25 +190,23 @@ useEffect(() => {
       }
     };
 
-
   const insertIcon = async (svgUrl: string) => {
     try {
       const uploadResult = await uploadIconSvg(svgUrl);
 
-      await addElementAtPoint ({
+      await addElementAtPoint({
         type: "image",
         ref: uploadResult.ref,
         altText: undefined,
       });
-
     } catch (err) {
       console.error("Failed to insert icon:", err);
       alert(
-  intl.formatMessage({
-    id: "errors.insert_icon",
-    defaultMessage: "Failed to insert icon. Please try again.",
-  })
-);
+        intl.formatMessage({
+          defaultMessage: "Failed to insert icon. Please try again.",
+          description: "Error message when icon insertion fails",
+        }),
+      );
     }
   };
 
@@ -211,7 +214,6 @@ useEffect(() => {
     setQuery("");
     setIcons([]);
   };
-
 
   return (
     <>
@@ -222,192 +224,217 @@ useEffect(() => {
             description="Main app title shown at the top"
           />
         </Title>
-
+        <div style={{ width: "99%" }}>
         <SearchBar
           value={query}
           onChange={setQuery}
           onClear={handleClearSearch}
           inputRef={searchInputRef}
         />
-        
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              alignItems: "center",
-              marginBottom: "0px",
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "8.2px",
+            alignItems: "center",
+            marginBottom: "0px",
+          }}
+        >
+          {/* Color selector */}
+          <ColorSelector
+            color={draftColor}
+            triggerMode="addColorButton"
+            onOpen={() => {
+              pickerOpen.current = true;
             }}
-          >
-            {/* Color selector */}
-              <ColorSelector
-                color={draftColor}
-                triggerMode="addColorButton"
-                onOpen={() => {
-                  pickerOpen.current = true;
-                }}
-                onClose={() => {
-                  pickerOpen.current = false;
-                
-                  if (draftColor !== committedColor) {
-                    setCommittedColor(draftColor); 
-                    addColor(draftColor);
-                  }
-                }}
-                onChange={(hex) => {
-                  setDraftColor(hex);
-                  setSelectedColor(hex); // visual only
-                }}
-              />
+            onClose={() => {
+              pickerOpen.current = false;
 
-              {recentColors.map((c, i) => {
-                const color = i === 0 ? draftColor : c;
-              
-                return (
-                  <button
-                    key={i === 0 ? "live" : c}
-                    onClick={() => commitColor(color)}
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      backgroundColor: color,
-                      border: color === selectedColor ? "3px solid #000" : "2px solid #ddd",
-                      cursor: "pointer",
-                    }}
-                    aria-label={intl.formatMessage(
-                      {
-                        id: "aria.search_by_color",
-                        defaultMessage: "Search icons in color {color}",
-                      },
-                      { color }
-                    )}
-                  />
-                );
-              })}
-            </div>
-        <Box padding="1u">
-  {loading && <LoadingIndicator size="medium" />}
+              if (draftColor !== committedColor) {
+                setCommittedColor(draftColor);
+                addColor(draftColor);
+              }
+            }}
+            onChange={(hex) => {
+              setDraftColor(hex);
+              setSelectedColor(hex); // visual only
+            }}
+          />
 
-  {icons.length === 0 && !loading && query.length >= 2 && (
-    <Text tone="secondary">
-      {intl.formatMessage({
-        defaultMessage: 'No results – try "home" or "user"',
-      })}
-    </Text>
-  )}
+          {recentColors.map((c, i) => {
+            const color = i === 0 ? draftColor : c;
 
-  {paginatedIcons.length > 0 && (
-    
-    <>   <Text size="small" tone="secondary" >
-    {query.length > 0
-      ? intl.formatMessage(
-          { defaultMessage: "Results · {query}" },
-          { query }
-        )
-      : intl.formatMessage({ defaultMessage: "Popular icons" })}
-  </Text>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "6px",
-          width: "100%",
-        }}
-      >
-        {paginatedIcons.map((icon) => {
-          const handleDragStart = createDragHandler(icon);
-
-          return (
-            <div key={icon.id} style={{ position: "relative" }}>
-              <div
-                draggable
-                onDragStart={handleDragStart}
-                onClick={() => insertIcon(icon.svgUrl)}
-                style={{
-                  cursor: "grab",
-                  borderRadius: "6px",
-                }}
-              >
-                <Box
-                  padding="0.5u"
-                  border="low"
-                  borderRadius="standard"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <img
-                    src={icon.thumbnailUrl}
-                    alt={icon.title}
-                    width={48}
-                    height={48}
-                  />
-                </Box>
-              </div>
-
+            return (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFavorite(icon);
-                }}
+                key={i === 0 ? "live" : c}
+                onClick={() => commitColor(color)}
                 style={{
-                  position: "absolute",
-                  top: -5,
-                  right: -5,
-                  background: "white",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "50%",
-                  border: "none",
-                  fontSize: "15px",
+                  backgroundColor: color,
+                  border:
+                    color === selectedColor
+                      ? "3px solid #00000086"
+                      : "2px solid #dddddd9c",
+                  cursor: "pointer",
+                }}
+                aria-label={intl.formatMessage(
+                  {
+                    defaultMessage: "Search icons in color {color}",
+                    description: "Aria label for color selector button",
+                  },
+                  { color },
+                )}
+              />
+            );
+          })}
+        </div>
+        <Box padding="1u">
+          {loading && <LoadingIndicator size="medium" />}
+
+          {icons.length === 0 && !loading && query.length >= 2 && (
+            <Text tone="secondary">
+              {intl.formatMessage({
+                defaultMessage: 'No results – try "home" or "user"',
+                description: "Message when no icons are found for a search query",
+              })}
+            </Text>
+          )}
+
+          {paginatedIcons.length > 0 && (
+            <>
+              {" "}
+              <Text size="small" tone="secondary">
+                {query.length > 0
+                  ? intl.formatMessage(
+                      { 
+                        defaultMessage: "Results · {query}",
+                        description: "Results count with search query",
+                      },
+                      { query },
+                    )
+                  : intl.formatMessage({ 
+                      defaultMessage: "Popular icons",
+                      description: "Title for popular icons section",
+                    })}
+              </Text>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: "6px",
+                  width: "99%",
                 }}
               >
-                {isFavorite(icon.id) ? FAVORITE_ICON : UNFAVORITE_ICON}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                {paginatedIcons.map((icon) => {
+                  const handleDragStart = createDragHandler(icon);
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-                        <div
+                  return (
+                    <div key={icon.id} style={{ backgroundColor: isDarkMode ? "#5c5c5cf5" : "#ffffff", position: "relative" }}>
+                      <div
+                        draggable
+                        onDragStart={handleDragStart}
+                        onClick={() => insertIcon(icon.svgUrl)}
+                        style={{
+                          cursor: "grab",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        <Box
+                          padding="0.5u"
+                          border="low"
+                          borderRadius="standard"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+            
+                        >
+                          <img
+                            src={icon.thumbnailUrl}
+                            alt={icon.title}
+                            width={48}
+                            height={48}
+                          />
+                        </Box>
+                      </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(icon);
+                          }}
+                          style={{
+                            position: "absolute",
+                            top: -5,
+                            right: -5,
+                            background: isDarkMode ? "#2b2b2b" : "#ffffff",
+                            color: isFavorite(icon.id)
+                              ? "#e25555"
+                              : isDarkMode
+                              ? "#999"
+                              : "#666",
+                            borderRadius: "100%",
+                            border: isDarkMode ? "1px solid #3a3a3a" : "1px solid #ddd",
+                            fontSize: "14px",
+                            width: "22px",
+                            height: "22px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "none",
+                            opacity: isFavorite(icon.id) ? 0.9 : 0.6,
+                          }}
+                        >
+                        {isFavorite(icon.id) ? FAVORITE_ICON : UNFAVORITE_ICON}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    width: "100%",
+                    width: "99%",
                     padding: "8px 10px 4px 0px",
                   }}
                 >
-          
-          <Button
-            variant="secondary"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            {intl.formatMessage({ id: "pagination.prev", defaultMessage: "Prev" })}
-          </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    {intl.formatMessage({
+                      defaultMessage: "Prev",
+                      description: "Previous page button text",
+                    })}
+                  </Button>
 
-          <Text tone="secondary">
-            {currentPage} / {totalPages}
-          </Text>
+                  <Text tone="secondary">
+                    {currentPage} / {totalPages}
+                  </Text>
 
-          <Button
-            variant="secondary"
-            onClick={() =>
-              setCurrentPage((p) => Math.min(totalPages, p + 1))
-            }
-            disabled={currentPage === totalPages}
-          >
-            {intl.formatMessage({ id: "pagination.next", defaultMessage: "Next" })}
-          </Button>
-
-        </div>
-      )}
-    </>
-  )}
-</Box>
-
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    {intl.formatMessage({
+                      defaultMessage: "Next",
+                      description: "Next page button text",
+                    })}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </Box>
       </Rows>
 
       {/* Fixed Favorites Section */}
@@ -415,12 +442,12 @@ useEffect(() => {
         style={{
           position: "fixed",
           bottom: "8px",
-          left: "24px",
-          right: "8px",
+          left: "23px",
+          right: "10px",
           zIndex: 100,
         }}
       >
-        <Box padding="2u" border="low" borderRadius="standard">
+        <Box padding="2u" border="low" borderRadius="standard" >
           {favorites.length > 0 ? (
             <>
               <Text size="small" tone="secondary">
@@ -430,23 +457,23 @@ useEffect(() => {
                   values={{ count: favorites.length }}
                 />
               </Text>
-                {isLimitReached && (
-                  <Box padding="1u">
-                    <Alert
-                      tone="warn"
-                      title={intl.formatMessage({
-                        id: "favorites.limit.title",
-                        defaultMessage: "Limit reached",
-                      })}
-                      onDismiss={() => setIsLimitReached(false)}
-                    >
-                      {intl.formatMessage({
-                        id: "favorites.limit.body",
-                        defaultMessage: "Remove an icon to add a new favorite.",
-                      })}
-                    </Alert>
-                  </Box>
-                )}
+              {isLimitReached && (
+                <Box padding="1u">
+                  <Alert
+                    tone="warn"
+                    title={intl.formatMessage({
+                      defaultMessage: "Limit reached",
+                      description: "Alert title when favorite limit is reached",
+                    })}
+                    onDismiss={() => setIsLimitReached(false)}
+                  >
+                    {intl.formatMessage({
+                      defaultMessage: "Remove an icon to add a new favorite.",
+                      description: "Alert message when favorite limit is reached",
+                    })}
+                  </Alert>
+                </Box>
+              )}
               <div style={{ marginTop: "8px" }}>
                 <IconGrid
                   icons={paginatedFavorites}
@@ -470,28 +497,32 @@ useEffect(() => {
                 >
                   <Button
                     variant="secondary"
-                    onClick={() =>
-                      setFavoritesPage((p) => Math.max(1, p - 1))
-                    }
+                    onClick={() => setFavoritesPage((p) => Math.max(1, p - 1))}
                     disabled={favoritesPage === 1}
                   >
-                    {intl.formatMessage({ id: "pagination.prev", defaultMessage: "Prev" })}
+                    {intl.formatMessage({
+                      defaultMessage: "Prev",
+                      description: "Previous page button text",
+                    })}
                   </Button>
-                  
+
                   <Text size="small" tone="secondary">
                     {favoritesPage} / {totalFavoritesPages}
                   </Text>
-                  
+
                   <Button
                     variant="secondary"
                     onClick={() =>
                       setFavoritesPage((p) =>
-                        Math.min(totalFavoritesPages, p + 1)
+                        Math.min(totalFavoritesPages, p + 1),
                       )
                     }
                     disabled={favoritesPage === totalFavoritesPages}
                   >
-                    {intl.formatMessage({ id: "pagination.next", defaultMessage: "Next" })}
+                    {intl.formatMessage({
+                      defaultMessage: "Next",
+                      description: "Next page button text",
+                    })}
                   </Button>
                 </div>
               )}

@@ -55,7 +55,7 @@ export const IconItem: React.FC<Props> = ({
       >
         <div
           style={{
-            backgroundColor: isDarkMode ? "#E8E8E8" : undefined,
+            backgroundColor: isDarkMode ? "#5c5c5cf5" : "#ffffff",
             borderRadius: "8px",
           }}
         >
@@ -85,12 +85,12 @@ export const IconItem: React.FC<Props> = ({
           }}
           style={{
             position: "absolute",
-            top: "2px",
-            right: "2px",
-            width: "12px",
-            height: "12px",
-            borderRadius: "50%",
-            border: "none",
+            top: "-5px",
+            right: "-5px",
+            width: "22px",
+            height: "22px",
+            borderRadius: "100%",
+            border: isDarkMode ? "1px solid #3a3a3a" : "1px solid #ddd",
             background: "rgba(255, 255, 255, 0.9)",
             cursor: "pointer",
             display: "flex",

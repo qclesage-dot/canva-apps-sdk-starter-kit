@@ -24,9 +24,9 @@ export const useFavorites = () => {
     localStorage.setItem("iconvault_favorites", JSON.stringify(favorites));
   }, [favorites]);
 
- // A reasonable limit
+  // A reasonable limit
 
-const toggle = (icon: Icon) => {
+  const toggle = (icon: Icon) => {
     setIsLimitReached(false); // Reset the error on every click
 
     setFavorites((prev) => {
@@ -51,11 +51,11 @@ const toggle = (icon: Icon) => {
     setFavorites((prev) => prev.filter((fav) => fav.id !== iconId));
   };
 
-  return { 
-    favorites, 
-    toggle, 
-    isFavorite, 
-    isLimitReached, 
-    setIsLimitReached // Export this so the UI can close the alert
+  return {
+    favorites,
+    toggle,
+    isFavorite,
+    isLimitReached,
+    setIsLimitReached, // Export this so the UI can close the alert
   };
 };
