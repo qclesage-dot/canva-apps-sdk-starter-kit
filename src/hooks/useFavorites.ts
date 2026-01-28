@@ -1,9 +1,13 @@
 // src/hooks/useFavorites.ts
 import { useState, useEffect } from "react";
 import type { Icon } from "../types";
+import { ui } from "@canva/design";
+
+const MAX_FAVORITES = 100;
 
 export const useFavorites = () => {
   const [favorites, setFavorites] = useState<Icon[]>([]);
+  const [isLimitReached, setIsLimitReached] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("iconvault_favorites");
@@ -20,13 +24,23 @@ export const useFavorites = () => {
     localStorage.setItem("iconvault_favorites", JSON.stringify(favorites));
   }, [favorites]);
 
-  const toggle = (icon: Icon) => {
+ // A reasonable limit
+
+const toggle = (icon: Icon) => {
+    setIsLimitReached(false); // Reset the error on every click
+
     setFavorites((prev) => {
       const exists = prev.find((fav) => fav.id === icon.id);
       if (exists) {
         return prev.filter((fav) => fav.id !== icon.id);
       }
-      return [...prev, icon];
+
+      if (prev.length >= MAX_FAVORITES) {
+        setIsLimitReached(true); // Trigger the alert state
+        return prev;
+      }
+
+      return [icon, ...prev];
     });
   };
 
@@ -37,5 +51,11 @@ export const useFavorites = () => {
     setFavorites((prev) => prev.filter((fav) => fav.id !== iconId));
   };
 
-  return { favorites, toggle, isFavorite, remove };
+  return { 
+    favorites, 
+    toggle, 
+    isFavorite, 
+    isLimitReached, 
+    setIsLimitReached // Export this so the UI can close the alert
+  };
 };

@@ -7,9 +7,10 @@ import {
   Box,
   Button,
   Text,
-  Swatch,
+  ColorSelector,
+  Alert,
 } from "@canva/app-ui-kit";
-import { ui, addNativeElement } from "@canva/design";
+import { ui, addElementAtPoint  } from "@canva/design";
 import { upload, openColorSelector } from "@canva/asset";
 import type { ColorSelectionEvent, ColorSelectionScope } from "@canva/asset";
 import { useFeatureSupport } from "@canva/app-hooks";
@@ -36,7 +37,7 @@ export const App = () => {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const intl = useIntl();
   const isSupported = useFeatureSupport();
-  const { favorites, toggle: toggleFavorite, isFavorite } = useFavorites();
+  const { favorites, toggle: toggleFavorite, isFavorite, isLimitReached, setIsLimitReached } = useFavorites();
   const isDarkMode = useDarkMode();
   const { recentColors, addColor } = useColorHistory();
 
@@ -44,6 +45,11 @@ export const App = () => {
   const FAVORITES_PER_PAGE = 8;
   const totalPages = Math.ceil(icons.length / ITEMS_PER_PAGE);
   const totalFavoritesPages = Math.ceil(favorites.length / FAVORITES_PER_PAGE);
+  const lastCommittedColor = useRef<string>(selectedColor);
+  const [draftColor, setDraftColor] = useState(selectedColor);
+  const [committedColor, setCommittedColor] = useState(selectedColor);
+  const pickerOpen = useRef(false);
+  const cache = useRef<Map<string, Icon[]>>(new Map());
 
   const paginatedIcons = icons.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -71,19 +77,28 @@ export const App = () => {
     });
   };
 
-const fetchIcons = async (q: string) => {
-  if (q.length < 2) {
-    setIcons([]);
+const fetchIcons = async (q: string, color: string) => {
+  if (q.length < 2) return;
+
+  const key = `${q.toLowerCase()}_${color.toUpperCase()}`;
+
+  // 1️⃣ Cache hit → instant UI update, no API call
+  if (cache.current.has(key)) {
+    setIcons(cache.current.get(key)!);
+    setLoading(false);
     return;
   }
+  if (cache.current.size > 100) {
+  cache.current.clear();
+}
 
   setLoading(true);
+
   try {
-    // URL encode the # as %23 for the API
-    const hexParam = selectedColor.replace("#", "%23");
-    
+    const hexParam = color.replace("#", "%23");
+
     const res = await fetch(
-      `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(q)}&limit=50`
+      `https://iconflow-api-568416828650.us-central1.run.app/search?query=${encodeURIComponent(q)}&limit=72`
     );
 
     const data = await res.json();
@@ -96,25 +111,37 @@ const fetchIcons = async (q: string) => {
     }));
 
     setIcons(results);
-    setCurrentPage(1); // important UX fix
+    cache.current.set(key, results);
   } finally {
     setLoading(false);
+  }
+};
+const commitColor = (color: string) => {
+  setSelectedColor(color);
+  setDraftColor(color);
+
+  // only search if query is valid
+  if (query.length >= 2) {
+    fetchIcons(query, color);
   }
 };
 
 // Default search on load
 useEffect(() => {
-  fetchIcons("icon");
+  fetchIcons("icon", committedColor);
 }, []);
 
 // User typing debounce
 useEffect(() => {
-  if (query.length < 2) return;   // 👈 prevent wipe
-  const timeout = setTimeout(() => fetchIcons(query), 600);
+  if (pickerOpen.current) return; 
+  if (query.length < 2 && icons.length === 0) return;
+
+  const timeout = setTimeout(() => {
+    fetchIcons(query || "icon", committedColor);
+  }, 600);
+
   return () => clearTimeout(timeout);
-}, [query, selectedColor]);
-
-
+}, [query, committedColor]);
 
   const uploadIconSvg = async (svgUrl: string) => {
     const res = await fetch(svgUrl);
@@ -158,11 +185,12 @@ useEffect(() => {
       }
     };
 
+
   const insertIcon = async (svgUrl: string) => {
     try {
       const uploadResult = await uploadIconSvg(svgUrl);
 
-      await addNativeElement({
+      await addElementAtPoint ({
         type: "image",
         ref: uploadResult.ref,
         altText: undefined,
@@ -170,7 +198,12 @@ useEffect(() => {
 
     } catch (err) {
       console.error("Failed to insert icon:", err);
-      alert("Failed to insert icon. Please try again.");
+      alert(
+  intl.formatMessage({
+    id: "errors.insert_icon",
+    defaultMessage: "Failed to insert icon. Please try again.",
+  })
+);
     }
   };
 
@@ -197,32 +230,62 @@ useEffect(() => {
           inputRef={searchInputRef}
         />
         
-        {/* Canva Color Selector */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "4px", alignItems: "center" }}>
-          <Swatch
-            fill={[selectedColor]}
-            onClick={(e) =>
-              openColorPicker(e.currentTarget.getBoundingClientRect())
-            }
-          />
-          
-          {/* Recent colors */}
-          {recentColors.map((c) => (
-            <div
-              key={c}
-              onClick={() => setSelectedColor(c)}
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                backgroundColor: c,
-                border: "2px solid #ddd",
-                cursor: "pointer"
-              }}
-            />
-          ))}
-        </div>
-          <Box padding="1u">
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              alignItems: "center",
+              marginBottom: "0px",
+            }}
+          >
+            {/* Color selector */}
+              <ColorSelector
+                color={draftColor}
+                triggerMode="addColorButton"
+                onOpen={() => {
+                  pickerOpen.current = true;
+                }}
+                onClose={() => {
+                  pickerOpen.current = false;
+                
+                  if (draftColor !== committedColor) {
+                    setCommittedColor(draftColor); 
+                    addColor(draftColor);
+                  }
+                }}
+                onChange={(hex) => {
+                  setDraftColor(hex);
+                  setSelectedColor(hex); // visual only
+                }}
+              />
+
+              {recentColors.map((c, i) => {
+                const color = i === 0 ? draftColor : c;
+              
+                return (
+                  <button
+                    key={i === 0 ? "live" : c}
+                    onClick={() => commitColor(color)}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      backgroundColor: color,
+                      border: color === selectedColor ? "3px solid #000" : "2px solid #ddd",
+                      cursor: "pointer",
+                    }}
+                    aria-label={intl.formatMessage(
+                      {
+                        id: "aria.search_by_color",
+                        defaultMessage: "Search icons in color {color}",
+                      },
+                      { color }
+                    )}
+                  />
+                );
+              })}
+            </div>
+        <Box padding="1u">
   {loading && <LoadingIndicator size="medium" />}
 
   {icons.length === 0 && !loading && query.length >= 2 && (
@@ -238,7 +301,7 @@ useEffect(() => {
     <>   <Text size="small" tone="secondary" >
     {query.length > 0
       ? intl.formatMessage(
-          { defaultMessage: "Showing results for {query}" },
+          { defaultMessage: "Results · {query}" },
           { query }
         )
       : intl.formatMessage({ defaultMessage: "Popular icons" })}
@@ -313,7 +376,7 @@ useEffect(() => {
                     justifyContent: "space-between",
                     alignItems: "center",
                     width: "100%",
-                    padding: "4px 10px 4px 0px",
+                    padding: "8px 10px 4px 0px",
                   }}
                 >
           
@@ -322,7 +385,7 @@ useEffect(() => {
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
-            Prev
+            {intl.formatMessage({ id: "pagination.prev", defaultMessage: "Prev" })}
           </Button>
 
           <Text tone="secondary">
@@ -336,7 +399,7 @@ useEffect(() => {
             }
             disabled={currentPage === totalPages}
           >
-            Next
+            {intl.formatMessage({ id: "pagination.next", defaultMessage: "Next" })}
           </Button>
 
         </div>
@@ -351,9 +414,9 @@ useEffect(() => {
       <div
         style={{
           position: "fixed",
-          bottom: "24px",
-          left: "17px",
-          right: "11px",
+          bottom: "8px",
+          left: "24px",
+          right: "8px",
           zIndex: 100,
         }}
       >
@@ -367,6 +430,23 @@ useEffect(() => {
                   values={{ count: favorites.length }}
                 />
               </Text>
+                {isLimitReached && (
+                  <Box padding="1u">
+                    <Alert
+                      tone="warn"
+                      title={intl.formatMessage({
+                        id: "favorites.limit.title",
+                        defaultMessage: "Limit reached",
+                      })}
+                      onDismiss={() => setIsLimitReached(false)}
+                    >
+                      {intl.formatMessage({
+                        id: "favorites.limit.body",
+                        defaultMessage: "Remove an icon to add a new favorite.",
+                      })}
+                    </Alert>
+                  </Box>
+                )}
               <div style={{ marginTop: "8px" }}>
                 <IconGrid
                   icons={paginatedFavorites}
@@ -385,7 +465,7 @@ useEffect(() => {
                     justifyContent: "space-between",
                     alignItems: "center",
                     width: "100%",
-                    padding: "0px 0px 4px 4px",
+                    padding: "4px 0px 4px 4px",
                   }}
                 >
                   <Button
@@ -395,7 +475,7 @@ useEffect(() => {
                     }
                     disabled={favoritesPage === 1}
                   >
-                    Prev
+                    {intl.formatMessage({ id: "pagination.prev", defaultMessage: "Prev" })}
                   </Button>
                   
                   <Text size="small" tone="secondary">
@@ -411,7 +491,7 @@ useEffect(() => {
                     }
                     disabled={favoritesPage === totalFavoritesPages}
                   >
-                    Next
+                    {intl.formatMessage({ id: "pagination.next", defaultMessage: "Next" })}
                   </Button>
                 </div>
               )}
