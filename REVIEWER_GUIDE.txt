@@ -21,6 +21,7 @@ QUICK START FOR REVIEWERS
    - Search: Type "home", "star", "user", or any keyword
    - Insert: Click any icon OR drag it to the canvas
    - Favorite: Click the heart icon on any search result
+   - Color: Click the "+" color button to pick a color for the icons
 
 
 ================================================================================
@@ -90,6 +91,8 @@ DATA STORED LOCALLY
 - Favorite icons (localStorage key: "iconvault_favorites")
 - Stored as JSON array of icon objects
 - Only stores icon metadata (id, title, URLs)
+- Recent color selections (localStorage key: "iconflow_recent_colors")
+- Stored as JSON array of hex color strings
 
 EXTERNAL CONNECTIONS
 --------------------

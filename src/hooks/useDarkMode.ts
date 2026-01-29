@@ -15,17 +15,14 @@ export const useDarkMode = (): boolean => {
   });
 
   useEffect(() => {
-    // Listen for changes to color scheme preference
     const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleChange = (e: MediaQueryListEvent) => {
       setIsDarkMode(e.matches);
     };
 
-    // Add listener for changes
     darkModeQuery.addEventListener("change", handleChange);
 
-    // Cleanup
     return () => darkModeQuery.removeEventListener("change", handleChange);
   }, []);
 

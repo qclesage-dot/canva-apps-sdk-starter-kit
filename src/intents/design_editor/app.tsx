@@ -1,5 +1,5 @@
 // src/app.tsx
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Rows,
   Title,
@@ -11,8 +11,7 @@ import {
   Alert,
 } from "@canva/app-ui-kit";
 import { ui, addElementAtPoint } from "@canva/design";
-import { upload, openColorSelector } from "@canva/asset";
-import type { ColorSelectionEvent, ColorSelectionScope } from "@canva/asset";
+import { upload } from "@canva/asset";
 import { useFeatureSupport } from "@canva/app-hooks";
 
 import { SearchBar } from "../../components/SearchBar";
@@ -34,6 +33,7 @@ export const App = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [favoritesPage, setFavoritesPage] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string>("#000000");
+  const [insertError, setInsertError] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const intl = useIntl();
   const isSupported = useFeatureSupport();
@@ -65,22 +65,6 @@ export const App = () => {
     (favoritesPage - 1) * FAVORITES_PER_PAGE,
     favoritesPage * FAVORITES_PER_PAGE,
   );
-
-  const handleColorSelect = async <T extends ColorSelectionScope>(
-    e: ColorSelectionEvent<T>,
-  ) => {
-    if (e.selection.type === "solid") {
-      setSelectedColor(e.selection.hexString);
-      addColor(e.selection.hexString);
-    }
-  };
-
-  const openColorPicker = (boundingRect: DOMRect) => {
-    openColorSelector(boundingRect, {
-      onColorSelect: handleColorSelect,
-      scopes: ["solid"],
-    });
-  };
 
   const fetchIcons = async (q: string, color: string) => {
     if (q.length < 2) return;
@@ -117,6 +101,9 @@ export const App = () => {
 
       setIcons(results);
       cache.current.set(key, results);
+    } catch (err) {
+      console.error("Search failed:", err);
+      setIcons([]);
     } finally {
       setLoading(false);
     }
@@ -124,6 +111,8 @@ export const App = () => {
   const commitColor = (color: string) => {
     setSelectedColor(color);
     setDraftColor(color);
+    setCommittedColor(color);
+    addColor(color);
 
     // only search if query is valid
     if (query.length >= 2) {
@@ -141,6 +130,7 @@ export const App = () => {
     if (pickerOpen.current) return;
     if (query.length < 2 && icons.length === 0) return;
 
+    setCurrentPage(1);
     const timeout = setTimeout(() => {
       fetchIcons(query || "icon", committedColor);
     }, 600);
@@ -201,12 +191,7 @@ export const App = () => {
       });
     } catch (err) {
       console.error("Failed to insert icon:", err);
-      alert(
-        intl.formatMessage({
-          defaultMessage: "Failed to insert icon. Please try again.",
-          description: "Error message when icon insertion fails",
-        }),
-      );
+      setInsertError(true);
     }
   };
 
@@ -224,13 +209,28 @@ export const App = () => {
             description="Main app title shown at the top"
           />
         </Title>
+        {insertError && (
+          <Alert
+            tone="critical"
+            title={intl.formatMessage({
+              defaultMessage: "Insert failed",
+              description: "Alert title when icon insertion fails",
+            })}
+            onDismiss={() => setInsertError(false)}
+          >
+            {intl.formatMessage({
+              defaultMessage: "Failed to insert icon. Please try again.",
+              description: "Alert message when icon insertion fails",
+            })}
+          </Alert>
+        )}
         <div style={{ width: "99%" }}>
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          onClear={handleClearSearch}
-          inputRef={searchInputRef}
-        />
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            onClear={handleClearSearch}
+            inputRef={searchInputRef}
+          />
         </div>
 
         <div
@@ -298,7 +298,8 @@ export const App = () => {
             <Text tone="secondary">
               {intl.formatMessage({
                 defaultMessage: 'No results – try "home" or "user"',
-                description: "Message when no icons are found for a search query",
+                description:
+                  "Message when no icons are found for a search query",
               })}
             </Text>
           )}
@@ -309,13 +310,13 @@ export const App = () => {
               <Text size="small" tone="secondary">
                 {query.length > 0
                   ? intl.formatMessage(
-                      { 
+                      {
                         defaultMessage: "Results · {query}",
                         description: "Results count with search query",
                       },
                       { query },
                     )
-                  : intl.formatMessage({ 
+                  : intl.formatMessage({
                       defaultMessage: "Popular icons",
                       description: "Title for popular icons section",
                     })}
@@ -332,7 +333,13 @@ export const App = () => {
                   const handleDragStart = createDragHandler(icon);
 
                   return (
-                    <div key={icon.id} style={{ backgroundColor: isDarkMode ? "#5c5c5cf5" : "#ffffff", position: "relative" }}>
+                    <div
+                      key={icon.id}
+                      style={{
+                        backgroundColor: isDarkMode ? "#5c5c5cf5" : "#ffffff",
+                        position: "relative",
+                      }}
+                    >
                       <div
                         draggable
                         onDragStart={handleDragStart}
@@ -349,7 +356,6 @@ export const App = () => {
                           display="flex"
                           alignItems="center"
                           justifyContent="center"
-            
                         >
                           <img
                             src={icon.thumbnailUrl}
@@ -359,33 +365,41 @@ export const App = () => {
                           />
                         </Box>
                       </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite(icon);
-                          }}
-                          style={{
-                            position: "absolute",
-                            top: -5,
-                            right: -5,
-                            background: isDarkMode ? "#2b2b2b" : "#ffffff",
-                            color: isFavorite(icon.id)
-                              ? "#e25555"
-                              : isDarkMode
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(icon);
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: -5,
+                          right: -5,
+                          background: isDarkMode ? "#2b2b2b" : "#ffffff",
+                          color: isFavorite(icon.id)
+                            ? "#e25555"
+                            : isDarkMode
                               ? "#999"
                               : "#666",
-                            borderRadius: "100%",
-                            border: isDarkMode ? "1px solid #3a3a3a" : "1px solid #ddd",
-                            fontSize: "14px",
-                            width: "22px",
-                            height: "22px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: "none",
-                            opacity: isFavorite(icon.id) ? 0.9 : 0.6,
-                          }}
-                        >
+                          borderRadius: "100%",
+                          border: isDarkMode
+                            ? "1px solid #3a3a3a"
+                            : "1px solid #ddd",
+                          fontSize: "14px",
+                          width: "22px",
+                          height: "22px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "none",
+                          opacity: isFavorite(icon.id) ? 0.9 : 0.6,
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.transform = "scale(1.1)")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.transform = "scale(1)")
+                        }
+                      >
                         {isFavorite(icon.id) ? FAVORITE_ICON : UNFAVORITE_ICON}
                       </button>
                     </div>
@@ -437,7 +451,7 @@ export const App = () => {
         </Box>
       </Rows>
 
-      {/* Fixed Favorites Section */}
+      {/* Favorites Section */}
       <div
         style={{
           position: "fixed",
@@ -447,7 +461,7 @@ export const App = () => {
           zIndex: 100,
         }}
       >
-        <Box padding="2u" border="low" borderRadius="standard" >
+        <Box padding="2u" border="low" borderRadius="standard">
           {favorites.length > 0 ? (
             <>
               <Text size="small" tone="secondary">
@@ -469,7 +483,8 @@ export const App = () => {
                   >
                     {intl.formatMessage({
                       defaultMessage: "Remove an icon to add a new favorite.",
-                      description: "Alert message when favorite limit is reached",
+                      description:
+                        "Alert message when favorite limit is reached",
                     })}
                   </Alert>
                 </Box>

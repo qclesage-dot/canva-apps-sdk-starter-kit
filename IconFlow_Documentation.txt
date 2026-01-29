@@ -46,19 +46,19 @@ The icons are served through our IconFlow API hosted on Google Cloud Run:
 
 API Endpoints:
 1. Search Icons:
-   GET /search?query={keyword}&limit=50
+   GET /search?query={keyword}&limit=72
    Returns a list of icon IDs matching the search query
 
 2. Retrieve Icon:
-   GET /{icon-id}.svg?height={h}&width={w}
-   Returns the SVG file for the specified icon
+   GET /{icon-id}.svg?height={h}&width={w}&color={hex}
+   Returns the SVG file for the specified icon in the given color
 
 CANVA INTEGRATION
 -----------------
 The app integrates with Canva using the official Canva Apps SDK:
 
 - @canva/design: For inserting elements onto the canvas
-  - addNativeElement(): Inserts icons at canvas center (click-to-insert)
+  - addElementAtPoint(): Inserts icons at canvas center (click-to-insert)
   - ui.startDragToPoint(): Enables drag-and-drop placement
   - ui.startDragToCursor(): Fallback for older Canva versions
 
@@ -72,6 +72,8 @@ DATA STORAGE
 ------------
 - Favorites are stored locally in the browser using localStorage
 - Storage key: "iconvault_favorites"
+- Recent color selections stored in localStorage
+- Storage key: "iconflow_recent_colors"
 - No server-side user data storage
 - No authentication required
 
@@ -87,8 +89,8 @@ Location: Main app interface (top of the panel)
 How to use:
 1. Type at least 2 characters in the search bar
 2. Results appear automatically after a 600ms debounce delay
-3. A flyout displays showing up to 50 matching icons
-4. Results are paginated (20 icons per page)
+3. Up to 72 matching icons are returned
+4. Results are paginated (24 icons per page)
 
 Example searches to try:
 - "home" - House and home-related icons
@@ -128,8 +130,8 @@ FEATURE 1: SEARCH ICONS
 -----------------------
 - Real-time search with 600ms debounce
 - Minimum 2 characters required
-- Returns up to 50 results
-- Results paginated at 20 per page
+- Returns up to 72 results
+- Results paginated at 24 per page
 
 FEATURE 2: INSERT ICONS (CLICK)
 -------------------------------
@@ -156,7 +158,7 @@ FEATURE 5: PAGINATION
 ---------------------
 - "Prev" and "Next" buttons for navigation
 - Page indicator shows current/total pages
-- Search results: 20 per page
+- Search results: 24 per page
 - Favorites: 8 per page
 
 FEATURE 6: DARK MODE SUPPORT
@@ -164,6 +166,15 @@ FEATURE 6: DARK MODE SUPPORT
 - Automatic detection of Canva's dark mode
 - Icons display with light background in dark mode
 - Uses CSS media query: prefers-color-scheme: dark
+
+FEATURE 7: COLOR SELECTOR
+--------------------------
+- ColorSelector component from the Canva UI Kit
+- Users pick a hex color to tint all icons in the results
+- Icons are dynamically re-fetched in the selected color
+- Recent colors displayed as circular quick-access buttons
+- Up to 6 recent colors tracked (persisted in localStorage)
+- Default colors: black (#000000), white (#ffffff), cyan (#00c4cc)
 
 
 ================================================================================
@@ -184,13 +195,13 @@ src/
   hooks/
     useFavorites.ts        <- Favorites state management hook
     useDarkMode.ts         <- Dark mode detection hook
-  types/
-    index.ts               <- TypeScript type definitions
+    useColorHistory.ts     <- Recent color selections hook
+  types.ts                 <- TypeScript type definitions
 
 KEY DEPENDENCIES
 ----------------
 - React 19.2.1
-- @canva/app-ui-kit 5.4.0
+- @canva/app-ui-kit 5.5.0
 - @canva/design 2.7.5
 - @canva/asset 2.3.0
 - react-intl 7.1.11 (internationalization)
@@ -254,6 +265,17 @@ PAGINATION TEST
 4. Verify: Page indicator updates, new icons shown
 5. Click "Prev" button
 6. Verify: Returns to previous page
+
+COLOR SELECTOR TEST
+-------------------
+1. Search for any icon (e.g., "star")
+2. Click the "+" color button to open the color picker
+3. Select a color (e.g., red)
+4. Close the picker
+5. Verify: Icons re-render in the selected color
+6. Verify: The selected color appears as a recent color button
+7. Click a recent color button
+8. Verify: Icons update to that color
 
 DARK MODE TEST
 --------------

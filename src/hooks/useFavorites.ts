@@ -1,7 +1,6 @@
 // src/hooks/useFavorites.ts
 import { useState, useEffect } from "react";
 import type { Icon } from "../types";
-import { ui } from "@canva/design";
 
 const MAX_FAVORITES = 100;
 
@@ -47,15 +46,11 @@ export const useFavorites = () => {
   const isFavorite = (iconId: string) =>
     favorites.some((fav) => fav.id === iconId);
 
-  const remove = (iconId: string) => {
-    setFavorites((prev) => prev.filter((fav) => fav.id !== iconId));
-  };
-
   return {
     favorites,
     toggle,
     isFavorite,
     isLimitReached,
-    setIsLimitReached, // Export this so the UI can close the alert
+    setIsLimitReached, 
   };
 };

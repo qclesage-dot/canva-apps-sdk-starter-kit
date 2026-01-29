@@ -98,7 +98,6 @@ export const IconItem: React.FC<Props> = ({
             justifyContent: "center",
             fontSize: "14px",
             padding: "0",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
             transition: "transform 0.1s ease",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
